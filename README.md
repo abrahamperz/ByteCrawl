@@ -85,8 +85,9 @@ bot.session().login(url, data, csrf_field="csrf_token")  # authenticated
 
 ## Use it from an AI agent (MCP)
 
-ByteCraw ships an MCP server, so any MCP-capable agent (Claude Code, Claude
-Desktop, Cursor...) can scrape and focused-crawl directly:
+ByteCraw ships an MCP server that **runs locally on your machine** (stdio
+transport — there is no hosted/remote endpoint yet), so any MCP-capable agent
+(Claude Code, Claude Desktop, Cursor...) can scrape and focused-crawl directly:
 
 ```bash
 pip install bytecraw[mcp]

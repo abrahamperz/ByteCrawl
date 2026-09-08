@@ -29,9 +29,11 @@
 - Removed dead code (unused `_PSEUDO` regex in `core.py`).
 
 ### Added
-- **MCP server** (`bytecraw-mcp`, `pip install bytecraw[mcp]`): exposes
-  `fetch_markdown`, `extract`, `focused_crawl` and `fetch_json_api` to any
-  MCP-capable agent (Claude Code, Claude Desktop, Cursor). Python 3.10+.
+- **MCP server — local only** (`bytecraw-mcp`, `pip install bytecraw[mcp]`):
+  runs on your machine over stdio and exposes `fetch_markdown`, `extract`,
+  `focused_crawl` and `fetch_json_api` to any MCP-capable agent (Claude Code,
+  Claude Desktop, Cursor). Python 3.10+. A hosted (remote HTTP) version is
+  planned but NOT included in this release.
 - Test suite: 89 tests covering selectors, extraction, encoding fallback,
   sessions/CSRF, markdown cleanup, the crawl frontier (lazy deletion),
   BFS/Shark-Search/OPIC behavior (including OPIC's cash-conservation
