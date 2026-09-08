@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-09-08
+
+### Changed
+- Docs only: README and changelog now state explicitly that the MCP server is
+  **local** (stdio transport) — no hosted/remote endpoint ships yet.
+
 ## 0.2.0 — 2026-09-08
 
 ### Changed
