@@ -64,9 +64,16 @@ def cosine(text_a: str, text_b: str) -> float:
     return dot / norm if norm else 0.0
 
 
+# Common second-level suffixes (bbc.co.uk → "bbc.co.uk", not "co.uk").
+# A frozen shortlist instead of the full public-suffix list keeps us dependency-free.
+_SECOND_LEVEL = frozenset({"co", "com", "org", "net", "ac", "gov", "edu"})
+
+
 def _root_domain(netloc: str) -> str:
     """firecrawl.dev, www.firecrawl.dev and docs.firecrawl.dev are the same site."""
-    return ".".join(netloc.lower().split(":")[0].split(".")[-2:])
+    labels = netloc.lower().split(":")[0].split(".")
+    take = 3 if len(labels) >= 3 and labels[-2] in _SECOND_LEVEL else 2
+    return ".".join(labels[-take:])
 
 
 def normalize(url: str, base: str) -> str | None:
@@ -156,7 +163,7 @@ class Crawler:
 
         links: [{url, anchor}]. Returns [(url, score)] for the frontier.
         """
-        return [(l["url"], -(depth + 1)) for l in links]
+        return [(link["url"], -(depth + 1)) for link in links]
 
     def on_visit(self, url: str, links: list[dict]):
         """Hook for strategy-specific state (OPIC distributes cash here)."""
@@ -208,7 +215,7 @@ class Crawler:
                     continue
                 links.append({"url": child, "anchor": a.get_text(" ", strip=True)})
 
-            result.graph[url] = [l["url"] for l in links]
+            result.graph[url] = [link["url"] for link in links]
             result.pages.append({
                 "url": url, "title": title[:120], "score": round(score, 4),
                 "relevance": round(relevance, 4), "depth": depth,
@@ -270,12 +277,12 @@ class SharkSearch(Crawler):
         parent_inherited = self._inherited.get(url, 0.0)
         inherited = self.delta * (relevance if relevance > 0.05 else parent_inherited)
         scored = []
-        for l in links:
-            url_words = " ".join(_tokens(urlparse(l["url"]).path))
-            local = cosine(f'{l["anchor"]} {url_words}', self.query)
+        for link in links:
+            url_words = " ".join(_tokens(urlparse(link["url"]).path))
+            local = cosine(f'{link["anchor"]} {url_words}', self.query)
             score = self.gamma * inherited + (1 - self.gamma) * local
-            self._inherited[l["url"]] = inherited
-            scored.append((l["url"], score))
+            self._inherited[link["url"]] = inherited
+            scored.append((link["url"], score))
         return scored
 
 
@@ -307,7 +314,7 @@ class OPIC(Crawler):
         amount = self.cash.pop(url, 0.0)
         self.history[url] = self.history.get(url, 0.0) + amount
         self._known_unvisited.discard(url)
-        targets = [l["url"] for l in links] or list(self._known_unvisited)
+        targets = [link["url"] for link in links] or list(self._known_unvisited)
         if not targets:
             return
         share = amount / len(targets)
@@ -317,7 +324,7 @@ class OPIC(Crawler):
 
     def score_links(self, url, links, relevance, depth):
         # Cash was already distributed in on_visit; the score IS the accumulated cash.
-        return [(l["url"], self.cash.get(l["url"], 0.0)) for l in links]
+        return [(link["url"], self.cash.get(link["url"], 0.0)) for link in links]
 
 
 def pagerank(graph: dict[str, list[str]], damping: float = 0.85,
