@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bytecraw"
-version = "0.1.1"
-description = "Una sola API para scrapear cualquier sitio: HTML estatico, JS dinamico, APIs, login con sesion, crawling y Markdown para LLMs."
+dynamic = ["version"]
+description = "Focused crawling for LLM data collection: Shark-Search and OPIC crawlers plus a single scraping API (static HTML, dynamic JS, APIs, session login, Markdown for LLMs) on a 3-dependency core."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "abrahamperz", email = "aperez@adokmx.com" }]
-keywords = ["scraping", "crawler", "beautifulsoup", "playwright", "markdown", "llm"]
+keywords = ["scraping", "crawler", "focused-crawling", "shark-search", "opic", "pagerank", "beautifulsoup", "playwright", "markdown", "llm"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -22,15 +22,17 @@ dependencies = [
     "requests>=2.28",
     "beautifulsoup4>=4.11",
     "lxml>=4.9",
-    "playwright>=1.40",
-    "markdownify>=0.11",
-    "trafilatura>=1.6",
 ]
 
 [project.optional-dependencies]
 browser = ["playwright>=1.40"]
 llm = ["markdownify>=0.11", "trafilatura>=1.6"]
-all = ["playwright>=1.40", "markdownify>=0.11", "trafilatura>=1.6"]
+mcp = ["mcp>=2; python_version >= '3.10'", "markdownify>=0.11", "trafilatura>=1.6"]
+all = ["playwright>=1.40", "markdownify>=0.11", "trafilatura>=1.6", "mcp>=2; python_version >= '3.10'"]
+dev = ["pytest>=7", "pytest-cov", "ruff"]
+
+[project.scripts]
+bytecraw-mcp = "bytecraw.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/abrahamperz/ByteCraw"
@@ -38,6 +40,23 @@ Repository = "https://github.com/abrahamperz/ByteCraw"
 
 [tool.setuptools]
 packages = ["bytecraw"]
+
+[tool.setuptools.dynamic]
+version = { attr = "bytecraw.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -m 'not live'"
+markers = [
+    "live: tests that hit real websites and need Playwright (run with: pytest -m live)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.vercel]
 entrypoint = "demo.app:app"
