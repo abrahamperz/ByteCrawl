@@ -7,7 +7,7 @@ items = bot.crawl(
     "https://quotes.toscrape.com",
     item="div.quote",
     fields={"quote": "span.text::text", "tags[]": "a.tag::text"},
-    next="li.next a::attr(href)",
+    next_page="li.next a::attr(href)",
 )
 ```
 

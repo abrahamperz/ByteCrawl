@@ -24,3 +24,7 @@ examples/*.md
 # Generated output at root
 /pagina.md
 .vercel
+
+# testing
+.coverage
+.pytest_cache/

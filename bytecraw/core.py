@@ -33,10 +33,6 @@ def _decoded_html(r: requests.Response) -> str:
     return r.text
 
 
-# Parses selectors like "p.price::text" or "h3 a::attr(title)"
-_PSEUDO = re.compile(r"^(?P<sel>.*?)(?:::(?P<op>text|attr)\((?P<arg>[^)]*)\)|::(?P<op2>text))?$")
-
-
 def _split_selector(spec: str) -> tuple[str, str, str | None]:
     """Returns (css_selector, operation, argument).
 
@@ -140,7 +136,12 @@ class Page:
                     return _clean_markdown(md)
             except ImportError:
                 pass
-        from markdownify import markdownify
+        try:
+            from markdownify import markdownify
+        except ImportError as e:
+            raise ImportError(
+                "Page.markdown() needs the 'llm' extra: pip install bytecraw[llm]"
+            ) from e
 
         return _clean_markdown(markdownify(self.html, strip=["script", "style"]))
 
@@ -168,7 +169,8 @@ def _clean_markdown(md: str) -> str:
             joined = [lines[0].rstrip()]
             for ln in lines[1:]:
                 s = ln.strip()
-                if s and len(s) < 60 and (s[:1].islower() or joined[-1].rstrip().endswith(("'", ","))):
+                continues = s[:1].islower() or joined[-1].rstrip().endswith(("'", ","))
+                if s and len(s) < 60 and continues:
                     joined[-1] = joined[-1] + " " + s
                 else:
                     joined.append(ln)
@@ -228,22 +230,25 @@ def _clean_markdown(md: str) -> str:
 class Session:
     """Reusable authenticated session (cookies + headers persist)."""
 
-    def __init__(self, scraper: "Scraper"):
+    def __init__(self, scraper: Scraper):
         self._s = requests.Session()
         self._s.headers.update({"User-Agent": scraper.user_agent})
         self._scraper = scraper
 
-    def login(self, url: str, data: dict, csrf_field: str | None = None) -> "Session":
+    def login(self, url: str, data: dict, csrf_field: str | None = None) -> Session:
         """Logs in. If csrf_field is given, reads it from the form first."""
         if csrf_field:
             r = self._s.get(url, timeout=self._scraper.timeout)
-            token = BeautifulSoup(_decoded_html(r), "lxml").select_one(f'input[name="{csrf_field}"]')
+            r.raise_for_status()
+            form = BeautifulSoup(_decoded_html(r), "lxml")
+            token = form.select_one(f'input[name="{csrf_field}"]')
             if token:
-                data = {**data, csrf_field: token["value"]}
-        self._s.post(url, data=data, timeout=self._scraper.timeout)
+                data = {**data, csrf_field: token.get("value", "")}
+        r = self._s.post(url, data=data, timeout=self._scraper.timeout)
+        r.raise_for_status()
         return self
 
-    def bearer(self, token: str) -> "Session":
+    def bearer(self, token: str) -> Session:
         self._s.headers["Authorization"] = f"Bearer {token}"
         return self
 
@@ -281,28 +286,40 @@ class Scraper:
         r = self._session.get(url, params=params, timeout=self.timeout)
         r.raise_for_status()
         self._wait()
-        return Page(url=url, data=r.json(), method="api",
+        try:
+            data = r.json()
+        except ValueError as e:
+            ctype = r.headers.get("content-type", "unknown")
+            raise ValueError(f"{url} did not return JSON (content-type: {ctype})") from e
+        return Page(url=url, data=data, method="api",
                     elapsed=round(time.perf_counter() - t0, 3), status=r.status_code)
 
     def browser(self, url: str, wait: str | None = None, scroll: bool = False) -> Page:
         """Technique 2: real browser (Playwright) for JS-rendered sites."""
-        from playwright.sync_api import sync_playwright
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as e:
+            raise ImportError(
+                "Scraper.browser() needs the 'browser' extra: "
+                "pip install bytecraw[browser] && playwright install chromium"
+            ) from e
 
         t0 = time.perf_counter()
         with sync_playwright() as p:
             nav = p.chromium.launch(headless=True)
             pg = nav.new_page()
-            pg.goto(url, wait_until="networkidle")
+            resp = pg.goto(url, wait_until="networkidle")
             if wait:
                 pg.wait_for_selector(wait)
             if scroll:
                 pg.mouse.wheel(0, 100000)
                 pg.wait_for_timeout(500)
             html = pg.content()
+            status = resp.status if resp else 0
             nav.close()
         self._wait()
         return Page(url=url, html=html, method="browser",
-                    elapsed=round(time.perf_counter() - t0, 3))
+                    elapsed=round(time.perf_counter() - t0, 3), status=status)
 
     def fetch(self, url: str, strategy: str = "auto") -> Page:
         """Fetches the page. strategy: auto | static | browser.
@@ -327,18 +344,18 @@ class Scraper:
         start: str,
         item: str,
         fields: dict[str, str],
-        next: str | None = None,
+        next_page: str | None = None,
         pages: int | None = None,
         base: str | None = None,
     ) -> list[dict]:
-        """Walks multiple pages following the 'next' link and extracts 'fields'.
+        """Walks multiple pages following the next-page link and extracts 'fields'.
 
-        start:  initial URL.
-        item:   selector for each record.
-        fields: fields to extract (see Page.extract).
-        next:   selector for the next-page link (e.g. "li.next a::attr(href)").
-        pages:  optional page limit.
-        base:   prefix for relative URLs (otherwise inferred from the host).
+        start:     initial URL.
+        item:      selector for each record.
+        fields:    fields to extract (see Page.extract).
+        next_page: selector for the next-page link (e.g. "li.next a::attr(href)").
+        pages:     optional page limit.
+        base:      prefix for relative URLs (otherwise inferred from the host).
         """
         from urllib.parse import urljoin
 
@@ -351,11 +368,12 @@ class Scraper:
             n += 1
             if pages and n >= pages:
                 break
-            if not next:
+            if not next_page:
                 break
-            sel, op, arg = _split_selector(next)
+            sel, op, arg = _split_selector(next_page)
             node = page.soup.select_one(sel)
-            href = _value_from(node, op if op != "text" else "attr", arg or "href") if node else None
+            op = op if op != "text" else "attr"
+            href = _value_from(node, op, arg or "href") if node else None
             url = urljoin(base or url, href) if href else None
         return results
 
