@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Endpoints of requires-python: 3.9 proves the __future__ annotations
+        # claim; 3.12 is current.
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (slim core + llm extra + dev tools, no playwright)
+        run: pip install -e ".[llm,dev]"
+      - name: Install MCP extra (needs Python 3.10+)
+        if: matrix.python-version != '3.9'
+        run: pip install -e ".[mcp]"
+      - name: Lint
+        run: ruff check bytecraw tests
+      - name: Tests
+        run: pytest --cov=bytecraw --cov-report=term-missing

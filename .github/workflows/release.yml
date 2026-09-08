@@ -1,0 +1,68 @@
+name: Release
+
+# Every push to main whose version has no tag yet becomes a GitHub Release:
+# run the tests, tag v{version}, and publish the CHANGELOG section as notes.
+# The version bump itself happens in the PR (minor per release), so main
+# stays free of bot commits.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read package version
+        id: v
+        run: |
+          VERSION=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('bytecraw/__init__.py').read()).group(1))")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if tag already exists
+        id: tag
+        run: |
+          if git rev-parse "v${{ steps.v.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.v.outputs.version }} already released — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        if: steps.tag.outputs.exists == 'false'
+        run: |
+          pip install -e ".[llm,dev]"
+          ruff check bytecraw tests
+          pytest
+
+      - name: Extract release notes from CHANGELOG
+        if: steps.tag.outputs.exists == 'false'
+        run: |
+          python - <<'EOF'
+          import re
+          version = "${{ steps.v.outputs.version }}"
+          text = open("CHANGELOG.md").read()
+          m = re.search(rf"^## {re.escape(version)}[^\n]*\n(.*?)(?=^## |\Z)",
+                        text, re.M | re.S)
+          notes = m.group(1).strip() if m else f"Release {version}."
+          open("release-notes.md", "w").write(notes)
+          EOF
+
+      - name: Create GitHub Release
+        if: steps.tag.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" \
+            --title "v${{ steps.v.outputs.version }}" \
+            --notes-file release-notes.md
