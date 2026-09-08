@@ -24,6 +24,6 @@ jobs:
         if: matrix.python-version != '3.9'
         run: pip install -e ".[mcp]"
       - name: Lint
-        run: ruff check bytecraw tests
+        run: ruff check bytecrawl tests
       - name: Tests
-        run: pytest --cov=bytecraw --cov-report=term-missing
+        run: pytest --cov=bytecrawl --cov-report=term-missing

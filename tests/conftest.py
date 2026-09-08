@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 import requests
 
-from bytecraw.core import Page, Scraper
+from bytecrawl.core import Page, Scraper
 
 
 class FakeResponse:

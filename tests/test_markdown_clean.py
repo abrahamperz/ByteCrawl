@@ -1,6 +1,6 @@
 """_clean_markdown heuristics: carousel dedup, heading merges, spacing."""
 
-from bytecraw.core import _clean_markdown
+from bytecrawl.core import _clean_markdown
 
 LONG_BLOCK = "Power your AI agents with clean structured web data at any scale"
 

@@ -23,8 +23,8 @@ BASE = Path(__file__).parent
 EXAMPLES = BASE.parent / "examples"
 
 sys.path.insert(0, str(BASE.parent))
-from bytecraw import Scraper
-from bytecraw.crawler import BFS, OPIC, SharkSearch, pagerank
+from bytecrawl import Scraper
+from bytecrawl.crawler import BFS, OPIC, SharkSearch, pagerank
 
 load_dotenv()
 
@@ -36,7 +36,7 @@ posthog_client = Posthog(
 atexit.register(posthog_client.shutdown)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "bytecraw-dev-secret")
+app.secret_key = os.environ.get("SECRET_KEY", "bytecrawl-dev-secret")
 
 
 def _get_distinct_id() -> str:

@@ -7,7 +7,7 @@ the former.
 
 import pytest
 
-from bytecraw import BFS, OPIC, SharkSearch
+from bytecrawl import BFS, OPIC, SharkSearch
 
 SEED = "https://s.test/"
 
@@ -107,7 +107,7 @@ class TestOPIC:
 
 class TestErrorHandling:
     def test_fetch_errors_counted_not_fatal(self, fake_site, monkeypatch):
-        from bytecraw.crawler import Crawler
+        from bytecrawl.crawler import Crawler
         original = Crawler.score_links
 
         def with_broken_link(self, url, links, relevance, depth):

@@ -1,7 +1,7 @@
 # Quickstart
 
 ```python
-from bytecraw import Scraper
+from bytecrawl import Scraper
 
 bot = Scraper(delay=0.5)
 page = bot.static("https://books.toscrape.com")

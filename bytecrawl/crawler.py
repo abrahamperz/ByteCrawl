@@ -1,5 +1,5 @@
 """
-Graph crawlers for ByteCraw: BFS, Shark-Search and OPIC.
+Graph crawlers for ByteCrawl: BFS, Shark-Search and OPIC.
 
 The web is a graph (pages = nodes, links = edges). A crawler decides in
 what ORDER to visit URLs with a limited request budget. Each strategy is
@@ -15,7 +15,7 @@ a different answer to that question:
 
 Usage:
 
-    from bytecraw.crawler import BFS, SharkSearch, OPIC, pagerank
+    from bytecrawl.crawler import BFS, SharkSearch, OPIC, pagerank
 
     result = SharkSearch(query="machine learning").crawl(
         "https://example.com", max_pages=100)

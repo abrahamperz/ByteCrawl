@@ -1,7 +1,7 @@
 # 6 · Crawling de grafos (avanzado)
 
 La web es un grafo: páginas = nodos, links = aristas. Un crawler decide en qué
-**orden** visitar las URLs con un presupuesto limitado de requests. ByteCraw trae
+**orden** visitar las URLs con un presupuesto limitado de requests. ByteCrawl trae
 tres estrategias con el mismo loop y distinto algoritmo de orden:
 
 | Estrategia | Idea | Optimiza |
@@ -89,7 +89,7 @@ calcula con el grafo completo.
 ## Uso
 
 ```python
-from bytecraw.crawler import BFS, SharkSearch, OPIC, pagerank
+from bytecrawl.crawler import BFS, SharkSearch, OPIC, pagerank
 
 result = SharkSearch(query="machine learning").crawl(
     "https://example.com", max_pages=100)
@@ -103,7 +103,7 @@ pagerank(result.graph) # PageRank offline sobre el grafo crawleado
 
 La relevancia se mide con similitud coseno TF (implementada en la librería, sin
 dependencias). Pruébalas en vivo y compáralas en
-[byte-craw.vercel.app/methods](https://byte-craw.vercel.app/methods#advanced).
+[bytecrawl.vercel.app/methods](https://bytecrawl.vercel.app/methods#advanced).
 
 ## Referencias
 

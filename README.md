@@ -1,8 +1,8 @@
-# ByteCraw
+# ByteCrawl
 
-[![CI](https://github.com/abrahamperz/ByteCraw/actions/workflows/ci.yml/badge.svg)](https://github.com/abrahamperz/ByteCraw/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/bytecraw)](https://pypi.org/project/bytecraw/)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/bytecraw/)
+[![CI](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml/badge.svg)](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/bytecrawl)](https://pypi.org/project/bytecrawl/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/bytecrawl/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Focused crawling for LLM data collection** — Shark-Search and OPIC in pure
@@ -12,8 +12,8 @@ and Markdown conversion that cuts LLM token costs 5–10×.
 
 *Léelo en [español](README.es.md).*
 
-- **Live demo**: https://byte-craw.vercel.app/
-- **PyPI**: https://pypi.org/project/bytecraw/
+- **Live demo**: https://bytecrawl.vercel.app/
+- **PyPI**: https://pypi.org/project/bytecrawl/
 
 ## Why another crawler?
 
@@ -21,7 +21,7 @@ Most crawlers visit pages in whatever order they find them. When you're
 collecting data on a topic with a limited request budget, order is everything:
 
 ```python
-from bytecraw import SharkSearch
+from bytecrawl import SharkSearch
 
 result = SharkSearch(query="vector databases").crawl(
     "https://example.com", max_pages=100)
@@ -36,7 +36,7 @@ Shark-Search chases the branches of a site that smell like your query and
 lets irrelevant ones decay geometrically — so 100 requests get you the 100
 *most useful* pages, not the 100 closest to the seed.
 
-|  | Scrapy | Firecrawl | ByteCraw |
+|  | Scrapy | Firecrawl | ByteCrawl |
 |---|---|---|---|
 | Shape | framework (projects, pipelines) | SaaS API | plain library |
 | Core install | ~20 packages | — | 3 packages |
@@ -57,7 +57,7 @@ that, live.
 ## Everyday scraping
 
 ```python
-from bytecraw import Scraper
+from bytecrawl import Scraper
 
 bot = Scraper()
 page = bot.fetch("https://books.toscrape.com")   # auto: static, falls back to browser
@@ -85,19 +85,19 @@ bot.session().login(url, data, csrf_field="csrf_token")  # authenticated
 
 ## Use it from an AI agent (MCP)
 
-ByteCraw ships an MCP server that **runs locally on your machine** (stdio
+ByteCrawl ships an MCP server that **runs locally on your machine** (stdio
 transport — there is no hosted/remote endpoint yet), so any MCP-capable agent
 (Claude Code, Claude Desktop, Cursor...) can scrape and focused-crawl directly:
 
 ```bash
-pip install bytecraw[mcp]
-claude mcp add bytecraw -- bytecraw-mcp     # Claude Code
+pip install bytecrawl[mcp]
+claude mcp add bytecrawl -- bytecrawl-mcp     # Claude Code
 ```
 
 Or in any MCP client config:
 
 ```json
-{"mcpServers": {"bytecraw": {"command": "bytecraw-mcp"}}}
+{"mcpServers": {"bytecrawl": {"command": "bytecrawl-mcp"}}}
 ```
 
 The agent gets four tools: `fetch_markdown` (page → LLM-ready Markdown),
@@ -109,16 +109,16 @@ For JS-rendered sites, also install the browser extra — `fetch_markdown` and
 back empty:
 
 ```bash
-pip install bytecraw[browser] && playwright install chromium
+pip install bytecrawl[browser] && playwright install chromium
 ```
 
 ## Install
 
 ```bash
-pip install bytecraw            # slim core: requests + beautifulsoup4 + lxml
-pip install bytecraw[llm]       # + Markdown conversion (trafilatura, markdownify)
-pip install bytecraw[browser]   # + Playwright (then: playwright install chromium)
-pip install bytecraw[all]       # everything
+pip install bytecrawl            # slim core: requests + beautifulsoup4 + lxml
+pip install bytecrawl[llm]       # + Markdown conversion (trafilatura, markdownify)
+pip install bytecrawl[browser]   # + Playwright (then: playwright install chromium)
+pip install bytecrawl[all]       # everything
 ```
 
 ## Docs
@@ -140,8 +140,8 @@ example against a practice site:
 
 ```bash
 pip install -e ".[llm,dev]"
-pytest --cov=bytecraw   # 89 tests, no network required
-ruff check bytecraw tests
+pytest --cov=bytecrawl   # 89 tests, no network required
+ruff check bytecrawl tests
 
 # live browser tests (real network + Chromium):
 pip install -e ".[browser]" && playwright install chromium
@@ -150,7 +150,7 @@ pytest -m live
 
 ## Ethics
 
-Respect `robots.txt`, terms of service and rate limits. ByteCraw ships with a
+Respect `robots.txt`, terms of service and rate limits. ByteCrawl ships with a
 configurable delay between requests and the docs include an
 [ethics note](docs/nota-etica.md). Scrape responsibly.
 

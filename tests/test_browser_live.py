@@ -3,13 +3,13 @@
 These hit the real network and need Playwright + Chromium, so they are
 excluded from the default run. Execute them with:
 
-    pip install bytecraw[browser] && playwright install chromium
+    pip install bytecrawl[browser] && playwright install chromium
     pytest -m live
 """
 
 import pytest
 
-from bytecraw import Scraper
+from bytecrawl import Scraper
 
 pytestmark = pytest.mark.live
 

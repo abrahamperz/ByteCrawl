@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-09-08
+
+### Changed
+- **Project renamed: ByteCraw → ByteCrawl** ("craw" read like a typo; "crawl"
+  matches what the library does and the naming of the space it lives in).
+  New identity everywhere: package `bytecrawl` on PyPI, repo
+  `github.com/abrahamperz/ByteCrawl` (the old URL redirects), demo at
+  `bytecrawl.vercel.app`, MCP command `bytecrawl-mcp`. The old `bytecraw`
+  0.1.1 package on PyPI is unmaintained — install `bytecrawl`.
+
 ## 0.2.1 — 2026-09-08
 
 ### Changed
@@ -9,15 +19,15 @@
 ## 0.2.0 — 2026-09-08
 
 ### Changed
-- **Slim core install**: `pip install bytecraw` now brings only
+- **Slim core install**: `pip install bytecrawl` now brings only
   `requests + beautifulsoup4 + lxml`. Playwright and the Markdown stack moved
   to the `[browser]` / `[llm]` / `[all]` extras (they were both hard
   dependencies *and* extras before, which defeated the point of the extras).
 - `Scraper.crawl()`: the pagination-selector parameter was renamed
   `next` → `next_page` (it shadowed the Python builtin).
 - Graph crawlers are now importable from the top level:
-  `from bytecraw import BFS, SharkSearch, OPIC, pagerank`.
-- Version is single-sourced from `bytecraw.__version__` (0.1.1 shipped with
+  `from bytecrawl import BFS, SharkSearch, OPIC, pagerank`.
+- Version is single-sourced from `bytecrawl.__version__` (0.1.1 shipped with
   mismatched versions in `pyproject.toml` and `__init__.py`).
 
 ### Fixed
@@ -31,11 +41,11 @@
 - `_root_domain()` handles second-level TLDs: `news.bbc.co.uk` and
   `guardian.co.uk` are no longer considered the same site.
 - Missing optional dependencies now raise helpful errors pointing at the
-  right extra (`bytecraw[llm]`, `bytecraw[browser]`).
+  right extra (`bytecrawl[llm]`, `bytecrawl[browser]`).
 - Removed dead code (unused `_PSEUDO` regex in `core.py`).
 
 ### Added
-- **MCP server — local only** (`bytecraw-mcp`, `pip install bytecraw[mcp]`):
+- **MCP server — local only** (`bytecrawl-mcp`, `pip install bytecrawl[mcp]`):
   runs on your machine over stdio and exposes `fetch_markdown`, `extract`,
   `focused_crawl` and `fetch_json_api` to any MCP-capable agent (Claude Code,
   Claude Desktop, Cursor). Python 3.10+. A hosted (remote HTTP) version is

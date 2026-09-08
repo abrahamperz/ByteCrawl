@@ -1,5 +1,5 @@
 """
-ByteCraw library core.
+ByteCrawl library core.
 
 Design: a Scraper object that knows how to fetch a page with the strategy you
 want (or the best one automatically) and gives you back a Page object from
@@ -140,7 +140,7 @@ class Page:
             from markdownify import markdownify
         except ImportError as e:
             raise ImportError(
-                "Page.markdown() needs the 'llm' extra: pip install bytecraw[llm]"
+                "Page.markdown() needs the 'llm' extra: pip install bytecrawl[llm]"
             ) from e
 
         return _clean_markdown(markdownify(self.html, strip=["script", "style"]))
@@ -301,7 +301,7 @@ class Scraper:
         except ImportError as e:
             raise ImportError(
                 "Scraper.browser() needs the 'browser' extra: "
-                "pip install bytecraw[browser] && playwright install chromium"
+                "pip install bytecrawl[browser] && playwright install chromium"
             ) from e
 
         t0 = time.perf_counter()

@@ -1,12 +1,12 @@
 """
-ByteCraw — Universal scraping layer
+ByteCrawl — Universal scraping layer
 ===================================
 A single API to scrape any site: static HTML, dynamic JS, hidden APIs,
 session login, crawling at scale and Markdown conversion for LLMs.
 
 Quickstart:
 
-    from bytecraw import Scraper
+    from bytecrawl import Scraper
 
     bot = Scraper()
     page = bot.fetch("https://books.toscrape.com")
@@ -29,4 +29,4 @@ __all__ = [
     "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult",
     "pagerank", "cosine",
 ]
-__version__ = "0.2.1"
+__version__ = "0.3.0"
