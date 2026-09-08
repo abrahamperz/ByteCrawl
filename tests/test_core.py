@@ -3,8 +3,8 @@
 import pytest
 import requests
 
-from bytecraw import Scraper
-from bytecraw.core import _decoded_html
+from bytecrawl import Scraper
+from bytecrawl.core import _decoded_html
 from tests.conftest import FakeResponse
 
 LONG_HTML = "<html><body><p>" + "real content here " * 30 + "</p></body></html>"

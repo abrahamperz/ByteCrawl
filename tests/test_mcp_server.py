@@ -7,7 +7,7 @@ import pytest
 
 mcp = pytest.importorskip("mcp")
 
-from bytecraw import mcp_server  # noqa: E402
+from bytecrawl import mcp_server  # noqa: E402
 from tests.conftest import SITE, FakeResponse  # noqa: E402
 
 

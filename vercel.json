@@ -5,7 +5,7 @@
       "src": "demo/app.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["demo/templates/**", "demo/static/**", "bytecraw/**"],
+        "includeFiles": ["demo/templates/**", "demo/static/**", "bytecrawl/**"],
         "maxDuration": 60
       }
     }

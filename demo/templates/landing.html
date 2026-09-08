@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ByteCraw · Universal scraping layer</title>
+<title>ByteCrawl · Universal scraping layer</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -174,9 +174,9 @@
 
 <nav>
   <div class="wrap row">
-    <a class="logo" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo-mark">ByteCraw</a>
+    <a class="logo" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo-mark">ByteCrawl</a>
     <div class="navlinks">
-      <a href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a href="/try" data-i18n="nav_try">Try</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCraw" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a href="/try" data-i18n="nav_try">Try</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
       <span class="lang-sw"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button><button class="lang-btn" data-lang="pt">PT</button></span>
     </div>
   </div>
@@ -196,12 +196,12 @@
       <a class="btn btn-ghost" href="/try" data-i18n="cta_try_live">Try it live</a>
     </div>
     <div class="install">
-      <span id="install-cmd"><span class="pmt">$</span> python3 -m pip install bytecraw</span>
+      <span id="install-cmd"><span class="pmt">$</span> python3 -m pip install bytecrawl</span>
       <span class="copy" data-i18n="copy">copy</span>
     </div>
     <div id="next-step" class="nextstep">
       <span data-i18n="ns_label">Now, in your code:</span>
-      <code id="ns-code">from bytecraw import Scraper</code>
+      <code id="ns-code">from bytecrawl import Scraper</code>
       <a href="/docs" class="ns-docs" data-i18n="ns_docs">For more, see the Docs →</a>
     </div>
 
@@ -226,7 +226,7 @@
           <span class="d" style="background:#27c93f"></span>
           <span class="fname">scrape.py</span>
         </div>
-<pre><code><span class="k">from</span> bytecraw <span class="k">import</span> Scraper
+<pre><code><span class="k">from</span> bytecrawl <span class="k">import</span> Scraper
 
 bot = <span class="f">Scraper</span>(delay=<span class="n">0.5</span>)
 
@@ -256,7 +256,7 @@ books = bot.<span class="f">crawl</span>(
   <div class="wrap">
     <div class="eyebrow" data-i18n="sec1_eyebrow">The strategy-agnostic toolkit</div>
     <h2 data-i18n="sec1_h2">One API. Every scraping strategy.</h2>
-    <p class="lead" data-i18n="sec1_lead">From a single static page to a JS-heavy SPA to a hidden JSON API—ByteCraw
+    <p class="lead" data-i18n="sec1_lead">From a single static page to a JS-heavy SPA to a hidden JSON API—ByteCrawl
       picks the right tool, or you choose explicitly.</p>
 
     <div class="features">
@@ -281,7 +281,7 @@ books = bot.<span class="f">crawl</span>(
         <span class="d" style="background:#27c93f"></span>
         <span class="fname">strategies.py</span>
       </div>
-<pre><code><span class="k">from</span> bytecraw <span class="k">import</span> Scraper
+<pre><code><span class="k">from</span> bytecrawl <span class="k">import</span> Scraper
 
 bot = <span class="f">Scraper</span>()
 
@@ -307,7 +307,7 @@ md = page.<span class="f">markdown</span>()</code></pre>
   <div class="wrap">
     <div class="eyebrow" data-i18n="sec2_eyebrow">Powered by the best</div>
     <h2 data-i18n="sec2_h2">Scale with confidence</h2>
-    <p class="lead" data-i18n="sec2_lead">ByteCraw stands on a battle-tested ecosystem—each strategy backed by a proven engine.</p>
+    <p class="lead" data-i18n="sec2_lead">ByteCrawl stands on a battle-tested ecosystem—each strategy backed by a proven engine.</p>
     <div class="eco">
       <div class="card"><div class="nm">BeautifulSoup</div><div class="ds" data-i18n="eco1_d">Robust HTML parsing and CSS selectors for static pages.</div><span class="pip">strategy · static</span></div>
       <div class="card"><div class="nm">Playwright</div><div class="ds" data-i18n="eco2_d">Real Chromium for JS-heavy SPAs and interaction.</div><span class="pip">strategy · browser</span></div>
@@ -319,29 +319,29 @@ md = page.<span class="f">markdown</span>()</code></pre>
 
 <div class="footcta" id="start">
   <div class="wrap">
-    <h2 data-i18n="foot_h2">Build with ByteCraw today</h2>
+    <h2 data-i18n="foot_h2">Build with ByteCrawl today</h2>
     <p class="lead" data-i18n="foot_lead">Start by exploring the docs, or open the live dashboard to run every strategy.</p>
     <div class="cta">
       <a class="btn btn-primary" href="/methods" data-i18n="cta_open_methods">Open methods</a>
       <a class="btn btn-ghost" href="/docs" data-i18n="cta_read_docs">Read the docs</a>
     </div>
-    <div class="install" style="margin-top:18px"><span><span class="pmt">$</span> python3 -m pip install bytecraw</span><span class="copy" data-i18n="copy">copy</span></div>
+    <div class="install" style="margin-top:18px"><span><span class="pmt">$</span> python3 -m pip install bytecrawl</span><span class="copy" data-i18n="copy">copy</span></div>
     <div class="install" style="margin-top:10px"><span><span class="pmt">$</span> python3 -m playwright install chromium</span><span class="copy" data-i18n="copy">copy</span></div>
   </div>
 </div>
 
 <footer>
-  <div class="wrap">ByteCraw — universal scraping layer · MIT</div>
+  <div class="wrap">ByteCrawl — universal scraping layer · MIT</div>
 </footer>
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
   const cmds = {
-    humans: '<span class="pmt">$</span> python3 -m pip install bytecraw',
+    humans: '<span class="pmt">$</span> python3 -m pip install bytecrawl',
     agents: '<span class="pmt">&gt;&gt;&gt;</span> Scraper().fetch(url).markdown()',
   };
   const nextSnippet = {
-    humans: 'from bytecraw import Scraper',
+    humans: 'from bytecrawl import Scraper',
     agents: 'md = Scraper().fetch(url).markdown()',
   };
   const cmd = document.getElementById('install-cmd');

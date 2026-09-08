@@ -1,4 +1,4 @@
-# ByteCraw — Perfil de diseño
+# ByteCrawl — Perfil de diseño
 
 Sistema visual de la landing, `/methods`, `/try` y `/docs`. Toda página nueva debe seguir esto.
 Inspiración: Vercel / chat-sdk.dev (light theme, limpio, técnico).

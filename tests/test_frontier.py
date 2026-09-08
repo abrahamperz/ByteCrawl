@@ -1,6 +1,6 @@
 """Frontier: max-heap ordering, FIFO tie-break, lazy deletion on re-push."""
 
-from bytecraw.crawler import Frontier
+from bytecrawl.crawler import Frontier
 
 
 class TestOrdering:

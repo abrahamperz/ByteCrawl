@@ -3,7 +3,7 @@
 import pytest
 import requests
 
-from bytecraw import Scraper
+from bytecrawl import Scraper
 from tests.conftest import FakeResponse
 
 LOGIN_FORM = """<html><body><form>

@@ -3,7 +3,7 @@
 
 import pytest
 
-from bytecraw.crawler import CrawlResult, _root_domain, cosine, normalize, pagerank
+from bytecrawl.crawler import CrawlResult, _root_domain, cosine, normalize, pagerank
 
 
 class TestCosine:

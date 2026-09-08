@@ -2,15 +2,15 @@
 
 import importlib.metadata
 
-import bytecraw
+import bytecrawl
 
 
 def test_version_matches_installed_metadata():
-    assert bytecraw.__version__ == importlib.metadata.version("bytecraw")
+    assert bytecrawl.__version__ == importlib.metadata.version("bytecrawl")
 
 
 def test_top_level_exports():
-    from bytecraw import (  # noqa: F401
+    from bytecrawl import (  # noqa: F401
         BFS,
         OPIC,
         Crawler,
@@ -25,5 +25,5 @@ def test_top_level_exports():
 
 
 def test_all_is_importable():
-    for name in bytecraw.__all__:
-        assert hasattr(bytecraw, name), name
+    for name in bytecrawl.__all__:
+        assert hasattr(bytecrawl, name), name

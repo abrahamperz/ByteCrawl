@@ -1,6 +1,6 @@
 """Selector parsing and Page extraction (pure, no network)."""
 
-from bytecraw.core import Page, _split_selector
+from bytecrawl.core import Page, _split_selector
 
 HTML = """
 <html><body>

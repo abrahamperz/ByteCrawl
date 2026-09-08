@@ -1,12 +1,12 @@
-"""MCP server: exposes ByteCraw to AI agents (Claude Code, Claude Desktop, Cursor...).
+"""MCP server: exposes ByteCrawl to AI agents (Claude Code, Claude Desktop, Cursor...).
 
-Any MCP-capable agent gets four tools that map to what ByteCraw does well:
+Any MCP-capable agent gets four tools that map to what ByteCrawl does well:
 clean Markdown for LLM ingestion, structured extraction with CSS selectors,
 focused crawling (the differentiator) and hidden JSON APIs.
 
-Run it:            bytecraw-mcp                 (stdio transport)
-Claude Code:       claude mcp add bytecraw -- bytecraw-mcp
-Requires:          pip install bytecraw[mcp]
+Run it:            bytecrawl-mcp                 (stdio transport)
+Claude Code:       claude mcp add bytecrawl -- bytecrawl-mcp
+Requires:          pip install bytecrawl[mcp]
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ try:
     from mcp.server.mcpserver import MCPServer
 except ImportError as e:  # pragma: no cover - exercised only without the extra
     raise ImportError(
-        "The MCP server needs the 'mcp' extra: pip install bytecraw[mcp]"
+        "The MCP server needs the 'mcp' extra: pip install bytecrawl[mcp]"
     ) from e
 
 from .core import Scraper
@@ -27,7 +27,7 @@ _scraper = Scraper(delay=0.2)
 _STRATEGIES = {"bfs": BFS, "shark": SharkSearch, "opic": OPIC}
 
 server = MCPServer(
-    "bytecraw",
+    "bytecrawl",
     instructions=(
         "Web scraping and focused crawling. Use fetch_markdown to read a page, "
         "extract for structured records, focused_crawl to find the pages most "
@@ -104,7 +104,7 @@ def fetch_json_api(url: str, params: dict | None = None) -> dict:
 
 
 def main() -> None:
-    """Entry point for the bytecraw-mcp console script (stdio transport)."""
+    """Entry point for the bytecrawl-mcp console script (stdio transport)."""
     server.run()
 
 
