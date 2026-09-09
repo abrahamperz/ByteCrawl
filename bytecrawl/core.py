@@ -307,6 +307,38 @@ class Page:
         return self.data
 
     # --- LLM ----------------------------------------------------------------
+    def _extraction_gutted_it(self, md: str) -> bool:
+        """Did main-content extraction discard the page instead of trimming it?
+
+        Two signals, because one was not enough. Length alone caught
+        books.toscrape.com, where the extractor returns the price column and
+        drops all twenty titles — but only because that page carries enough
+        navigation to put the ratio at 0.19. Strip the chrome and the same
+        failure scores 0.51, sailing past a threshold set low enough to spare
+        an article buried in navigation.
+
+        So also look at headings. On a listing the item titles are headings, so
+        losing nearly all of them means the rows went with them. Count matters:
+        quotes.toscrape.com has two headings, both site chrome, and drops both
+        while keeping every quote — correct behaviour that a bare ratio of
+        surviving headings would call a failure. A page with many headings and
+        almost none left is the one that lost its content.
+        """
+        visible = len(self.soup.get_text(" ", strip=True))
+        if visible and len(md) / visible < self._MAIN_CONTENT_FLOOR:
+            return True
+        headings = [h.get_text(strip=True)
+                    for h in self.soup.select("h1,h2,h3,h4") if h.get_text(strip=True)]
+        if len(headings) < self._MANY_HEADINGS:
+            return False
+        kept = sum(1 for h in headings if h[:30] in md)
+        return kept / len(headings) < self._HEADINGS_FLOOR
+
+    # A page with at least this many headings is structured enough that losing
+    # them means something. Below it they are a title and a sidebar label.
+    _MANY_HEADINGS = 5
+    _HEADINGS_FLOOR = 0.25
+
     # Below this share of the page's visible text, main-content extraction has
     # not trimmed boilerplate — it has thrown the content away. Measured:
     # trafilatura keeps 1.14x the visible text on quotes.toscrape.com and 1.4-1.6x
@@ -329,8 +361,7 @@ class Page:
                 # A listing is all repetition, which is exactly what an
                 # article extractor is built to discard, so check what came
                 # back before trusting it.
-                visible = len(self.soup.get_text(" ", strip=True))
-                if md and (not visible or len(md) / visible >= self._MAIN_CONTENT_FLOOR):
+                if md and not self._extraction_gutted_it(md):
                     return _clean_markdown(md)
             except ImportError:
                 pass
