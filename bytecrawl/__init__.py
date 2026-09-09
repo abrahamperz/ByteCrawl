@@ -18,15 +18,26 @@ Quickstart:
 Explicit strategies:  bot.static(url) · bot.api(url) · bot.browser(url)
 Crawling:             bot.crawl(url, item=..., fields=..., next_page=...)
 Graph crawling:       SharkSearch(query=...).crawl(url) · BFS · OPIC
+Comparing them:       compare(url, query) -> the three side by side
 LLM:                  page.markdown() · page.tokens()
 """
 
 from .core import Page, Scraper, Session
-from .crawler import BFS, OPIC, Crawler, CrawlResult, SharkSearch, cosine, pagerank
+from .crawler import (
+    BFS,
+    OPIC,
+    STRATEGIES,
+    Crawler,
+    CrawlResult,
+    SharkSearch,
+    compare,
+    cosine,
+    pagerank,
+)
 
 __all__ = [
     "Scraper", "Page", "Session",
-    "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult",
-    "pagerank", "cosine",
+    "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult", "STRATEGIES",
+    "pagerank", "cosine", "compare",
 ]
 __version__ = "0.3.0"
