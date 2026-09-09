@@ -12,6 +12,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urldefrag, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -20,6 +21,30 @@ DEFAULT_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
+
+# Non-HTML extensions: not worth spending a request on them.
+_SKIP_EXT = re.compile(
+    r"\.(png|jpe?g|gif|svg|webp|ico|css|js|pdf|zip|gz|tar|mp[34]|avi|mov|woff2?|ttf|xml|rss)$",
+    re.IGNORECASE,
+)
+
+
+def normalize(url: str, base: str) -> str | None:
+    """Resolve relative URLs, strip #fragments and filter out non-web-page URLs.
+
+    Also canonicalises the empty path to "/": a seed given as
+    "https://site.com" and a link to "/" are the same page, and without this
+    the crawler spends two requests of its budget to fetch it twice.
+    """
+    absolute, _ = urldefrag(urljoin(base, url))
+    parsed = urlparse(absolute)
+    if parsed.scheme not in ("http", "https"):
+        return None
+    if _SKIP_EXT.search(parsed.path):
+        return None
+    if not parsed.path:
+        absolute = parsed._replace(path="/").geturl()
+    return absolute
 
 def _decoded_html(r: requests.Response) -> str:
     """Response text with the correct encoding.
@@ -116,8 +141,26 @@ class Page:
             records.append(row)
         return records
 
-    def links(self) -> list[str]:
-        return [a["href"] for a in self.soup.select("a[href]")]
+    def links(self, raw: bool = False) -> list[str]:
+        """Every link on the page as an absolute URL, deduplicated in order.
+
+        Raw hrefs are almost never what you want: a long article yields
+        hundreds of "#cite_note-4" fragments, repeated navigation and
+        mailto:/asset links. This runs the same normalisation the crawlers
+        use, so what you get back is the set of pages you could visit next.
+        Pass raw=True for the untouched attribute values.
+        """
+        hrefs = [a["href"] for a in self.soup.select("a[href]")]
+        if raw:
+            return hrefs
+        out: list[str] = []
+        seen: set[str] = set()
+        for href in hrefs:
+            target = normalize(href, self.url)
+            if target and target not in seen:
+                seen.add(target)
+                out.append(target)
+        return out
 
     def json(self) -> Any:
         return self.data

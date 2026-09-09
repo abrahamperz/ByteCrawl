@@ -70,8 +70,24 @@ class TestPageExtraction:
         rows = page().extract("div.quote", {"missing": "h1.nope::text"})
         assert rows[0]["missing"] is None
 
-    def test_links(self):
-        assert page().links() == ["/tag/life", "/tag/doubt", "/tag/mind"]
+    def test_links_are_absolute(self):
+        assert page().links() == [
+            "https://x.test/tag/life",
+            "https://x.test/tag/doubt",
+            "https://x.test/tag/mind",
+        ]
+
+    def test_links_raw_keeps_the_attribute_values(self):
+        assert page().links(raw=True) == ["/tag/life", "/tag/doubt", "/tag/mind"]
+
+    def test_links_drops_fragments_mailto_and_duplicates(self):
+        p = Page(url="https://x.test/a/", html="""
+            <a href="#cite_note-1">1</a><a href="#">top</a>
+            <a href="mailto:hi@x.test">mail</a><a href="/logo.png">logo</a>
+            <a href="/b">b</a><a href="https://x.test/b">b again</a>
+            <a href="/c#section">c</a>
+        """)
+        assert p.links() == ["https://x.test/a/", "https://x.test/b", "https://x.test/c"]
 
     def test_tokens_estimate(self):
         p = Page(url="https://x.test", html="a" * 400)

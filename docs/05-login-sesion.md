@@ -13,4 +13,4 @@ s = bot.session().bearer("eyJhbGci...")
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: Crawling de grafos →](06-crawling-grafos.md)
+[← Volver al índice](../README.es.md) · [Siguiente: Crawling de grafos →](06-crawling-grafos.md)

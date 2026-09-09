@@ -89,7 +89,7 @@ calcula con el grafo completo.
 ## Uso
 
 ```python
-from bytecrawl.crawler import BFS, SharkSearch, OPIC, pagerank
+from bytecrawl import BFS, SharkSearch, OPIC, pagerank
 
 result = SharkSearch(query="machine learning").crawl(
     "https://example.com", max_pages=100)
@@ -105,6 +105,62 @@ La relevancia se mide con similitud coseno TF (implementada en la librería, sin
 dependencias). Pruébalas en vivo y compáralas en
 [bytecrawl.vercel.app/methods](https://bytecrawl.vercel.app/methods#advanced).
 
+## Elegir una estrategia desde fuera de Python
+
+No hace falta escribir código para cambiar de estrategia. Las tres superficies
+aceptan los mismos tres nombres — `shark` (por defecto), `opic`, `bfs`:
+
+| Superficie | Cómo |
+|---|---|
+| API HTTP | `?url=SITIO&method=crawl&query=TEMA&strategy=opic` |
+| MCP | `focused_crawl(url, query, strategy="opic", max_pages=20)` |
+| Python | instanciar la clase: `OPIC(delay=0.5).crawl(url, max_pages=50)` |
+
+Un nombre desconocido no se cae al valor por defecto en silencio: la API
+devuelve 400 y la herramienta MCP lanza `ValueError` listando los válidos.
+
+`SharkSearch` exige `query` como argumento obligatorio — sin tema no tiene nada
+que rankear. `BFS` y `OPIC` también lo aceptan, pero ahí solo sirve para
+puntuar las páginas del resultado; no cambia su orden de recorrido.
+
+## Ajustar Shark-Search
+
+Los dos parámetros del paper están expuestos:
+
+```python
+SharkSearch(query="machine learning", delta=0.5, gamma=0.8)
+```
+
+- `delta` (0.5) — qué tan rápido se apaga una rama sin señal. El decaimiento es
+  `δⁿ` con la profundidad, así que 0.3 abandona antes las ramas malas y 0.7 les
+  da más margen.
+- `gamma` (0.8) — cuánto del score de un link viene del padre frente a su propio
+  texto de ancla: `score = γ·heredado + (1−γ)·local`. Bájalo cuando el texto de
+  ancla del sitio sea descriptivo y confíes más en él que en la estructura.
+
+Los valores por defecto son razonables; cámbialos solo si un crawl se está yendo
+del tema (baja `delta`) o si ignora links obviamente relevantes (baja `gamma`).
+
+## Qué te da la elección, medido
+
+Desde `en.wikipedia.org/wiki/Silicon_Valley`, query `san francisco`, 20 páginas
+y 20 requests cada una:
+
+| Estrategia | Páginas sobre 0.1 de relevancia | Mejor página | Media del top 5 |
+|---|---|---|---|
+| `shark` | 20 | 0.7774 | 0.6523 |
+| `opic` | 4 | 0.2799 | 0.1715 |
+| `bfs` | 1 | 0.1068 | 0.0733 |
+
+Reprodúcelo con `result.relevant(0.1)` en cada una. Las tres gastaron los mismos
+20 requests; lo único que cambió es a dónde fueron. La mejor página de Shark
+puntúa 7.3× la de BFS, y su top 5 promedia 8.9×.
+
+Bajar el umbral no rescata a BFS acá: las tres terminan con miles de URLs sin
+visitar en la cola — 3.8k Shark, 8.6k BFS, 16.8k OPIC — así que la cobertura
+nunca converge. Ese es el caso para el que vale la pena diseñar: el orden
+importa justamente cuando el presupuesto es chico frente al sitio.
+
 ## Referencias
 
 - Hersovici et al. (1998), *The shark-search algorithm — an application:
@@ -115,4 +171,4 @@ dependencias). Pruébalas en vivo y compáralas en
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: Markdown para LLMs →](markdown-llms.md)
+[← Volver al índice](../README.es.md) · [Siguiente: Markdown para LLMs →](markdown-llms.md)

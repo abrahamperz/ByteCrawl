@@ -14,4 +14,4 @@ books = page.extract("article.product_pod", {
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: JS dinámico →](02-js-dinamico.md)
+[← Volver al índice](../README.es.md) · [Siguiente: JS dinámico →](02-js-dinamico.md)

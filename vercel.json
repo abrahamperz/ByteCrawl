@@ -8,9 +8,24 @@
         "includeFiles": ["demo/templates/**", "demo/static/**", "bytecrawl/**"],
         "maxDuration": 60
       }
+    },
+    {
+      "src": "api/mcp_app.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["bytecrawl/**"],
+        "maxDuration": 60
+      }
     }
   ],
   "routes": [
+    {
+      "src": "/(.*)",
+      "has": [{ "type": "host", "value": "bytecraw.vercel.app" }],
+      "status": 308,
+      "headers": { "Location": "https://bytecrawl.vercel.app/$1" }
+    },
+    { "src": "/mcp(.*)", "dest": "api/mcp_app.py" },
     { "src": "/(.*)", "dest": "demo/app.py" }
   ]
 }

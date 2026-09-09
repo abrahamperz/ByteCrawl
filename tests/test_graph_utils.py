@@ -3,7 +3,14 @@
 
 import pytest
 
-from bytecrawl.crawler import CrawlResult, _root_domain, cosine, normalize, pagerank
+from bytecrawl.crawler import (
+    CrawlResult,
+    _root_domain,
+    cosine,
+    normalize,
+    pagerank,
+    relevance,
+)
 
 
 class TestCosine:
@@ -24,6 +31,37 @@ class TestCosine:
         assert cosine("análisis de datos", "análisis de datos") == pytest.approx(1.0)
 
 
+class TestRelevance:
+    TEXT = "Books about crime and detective stories"
+    URL = "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+
+    def test_exact_term_matches(self):
+        assert relevance(self.TEXT, "mystery", self.URL) > 0
+
+    @pytest.mark.parametrize("typo", ["mistery", "mustery", "mystry"])
+    def test_one_letter_typos_still_match(self, typo):
+        # A slipped keystroke used to score 0.0, which reads as "broken"
+        # rather than "no match".
+        assert relevance(self.TEXT, typo, self.URL) == pytest.approx(
+            relevance(self.TEXT, "mystery", self.URL))
+
+    @pytest.mark.parametrize("miss", ["travel", "poetry", "zzzzzz"])
+    def test_absent_topics_stay_zero(self, miss):
+        assert relevance(self.TEXT, miss, self.URL) == 0.0
+
+    def test_url_path_counts_as_signal(self):
+        # The word appears only in the URL, not the body.
+        assert relevance("Some unrelated body copy", "mystery", self.URL) > 0
+
+    def test_short_words_require_exact_match(self):
+        # "data"/"date" are as close in trigrams as a real typo, so fuzzy
+        # matching on short words would invent hits.
+        assert relevance("the date of release", "data") == 0.0
+
+    def test_empty_query_is_zero(self):
+        assert relevance(self.TEXT, "", self.URL) == 0.0
+
+
 class TestNormalize:
     def test_resolves_relative(self):
         assert normalize("/docs", "https://x.test/a/b") == "https://x.test/docs"
@@ -31,6 +69,11 @@ class TestNormalize:
     def test_strips_fragment(self):
         assert normalize("https://x.test/p#section", "https://x.test") == \
             "https://x.test/p"
+
+    def test_bare_host_and_root_are_the_same_page(self):
+        # Otherwise the crawler burns two budget slots on one page.
+        seed = "https://x.test"
+        assert normalize(seed, seed) == normalize("/", seed) == "https://x.test/"
 
     def test_rejects_non_http(self):
         assert normalize("mailto:a@x.test", "https://x.test") is None

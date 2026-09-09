@@ -31,16 +31,15 @@ import math
 import re
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from urllib.parse import urldefrag, urljoin, urlparse
+from functools import lru_cache
+from urllib.parse import urlparse
 
-from .core import Scraper
-
-# Non-HTML extensions: not worth spending a request on them.
-_SKIP_EXT = re.compile(
-    r"\.(png|jpe?g|gif|svg|webp|ico|css|js|pdf|zip|gz|tar|mp[34]|avi|mov|woff2?|ttf|xml|rss)$",
-    re.IGNORECASE,
-)
+# normalize() lives in core so Page.links() and the crawlers agree on what
+# counts as a link; re-exported here because that is where it was first
+# published and where the tests and docs import it from.
+from .core import Scraper, normalize
 
 _WORD = re.compile(r"[a-záéíóúüñ0-9]+", re.IGNORECASE)
 
@@ -64,6 +63,69 @@ def cosine(text_a: str, text_b: str) -> float:
     return dot / norm if norm else 0.0
 
 
+@lru_cache(maxsize=4096)
+def _trigrams(word: str) -> frozenset:
+    padded = f"~{word}~"
+    return frozenset(padded[i:i + 3] for i in range(len(padded) - 2))
+
+
+def _dice(a: frozenset, b: frozenset) -> float:
+    """Sørensen-Dice overlap of two trigram sets: 1.0 identical, 0.0 disjoint."""
+    if not a or not b:
+        return 0.0
+    return 2 * len(a & b) / (len(a) + len(b))
+
+
+# Thresholds measured against real pairs, not guessed. At 0.55 a one-letter
+# slip is caught ("mistery"/"mystery" = 0.57) while genuinely different words
+# stay out ("price"/"prize" = 0.40, "crawl"/"crown" = 0.20). Words shorter than
+# 6 letters are matched exactly: they have too few trigrams to tell a typo from
+# a different word ("data"/"date" and "news"/"newt" both score 0.50, the same
+# as the real typo "travle"/"travel"), so fuzzy there would invent matches.
+# Deliberately conservative: it misses heavier typos ("histroy") and
+# inflections ("pricing"/"prices") rather than risk false hits.
+_FUZZY_MIN = 0.55
+_FUZZY_MIN_LEN = 6
+
+
+def _resolve_terms(query: str, vocabulary: set) -> str:
+    """Rewrites query words that are near-misses of a word the page uses.
+
+    People typo their queries ("mistery"), and exact term matching scores that
+    0.0 — which reads as "the crawler is broken" rather than "no match".
+    Snapping each query term to its closest page term keeps the scoring itself
+    on the plain cosine path.
+    """
+    resolved = []
+    for term in _tokens(query):
+        if term in vocabulary or len(term) < _FUZZY_MIN_LEN:
+            resolved.append(term)
+            continue
+        grams = _trigrams(term)
+        best, best_score = None, 0.0
+        for word in vocabulary:
+            if len(word) < _FUZZY_MIN_LEN or abs(len(word) - len(term)) > 2:
+                continue
+            score = _dice(grams, _trigrams(word))
+            if score > best_score:
+                best, best_score = word, score
+        resolved.append(best if best_score >= _FUZZY_MIN else term)
+    return " ".join(resolved)
+
+
+def relevance(text: str, query: str, url: str = "") -> float:
+    """How well a page answers a query.
+
+    Scores the page text plus its URL path — a page at /category/mystery is
+    about mystery even if the word is thin in the body — and tolerates typos
+    and inflections in the query.
+    """
+    if not query:
+        return 0.0
+    haystack = f"{text} {' '.join(_tokens(urlparse(url).path))}" if url else text
+    return cosine(haystack, _resolve_terms(query, set(_tokens(haystack))))
+
+
 # Common second-level suffixes (bbc.co.uk → "bbc.co.uk", not "co.uk").
 # A frozen shortlist instead of the full public-suffix list keeps us dependency-free.
 _SECOND_LEVEL = frozenset({"co", "com", "org", "net", "ac", "gov", "edu"})
@@ -74,17 +136,6 @@ def _root_domain(netloc: str) -> str:
     labels = netloc.lower().split(":")[0].split(".")
     take = 3 if len(labels) >= 3 and labels[-2] in _SECOND_LEVEL else 2
     return ".".join(labels[-take:])
-
-
-def normalize(url: str, base: str) -> str | None:
-    """Resolve relative URLs, strip #fragments and filter out non-web-page URLs."""
-    absolute, _ = urldefrag(urljoin(base, url))
-    parsed = urlparse(absolute)
-    if parsed.scheme not in ("http", "https"):
-        return None
-    if _SKIP_EXT.search(parsed.path):
-        return None
-    return absolute
 
 
 class Frontier:
@@ -157,7 +208,7 @@ class Crawler:
         self.scraper = Scraper(delay=delay, timeout=timeout)
 
     # --- extension point -------------------------------------------------------
-    def score_links(self, url: str, links: list[dict], relevance: float,
+    def score_links(self, url: str, links: list[dict], page_relevance: float,
                     depth: int) -> list[tuple[str, float]]:
         """BFS: the score only encodes depth (shallower = visited sooner).
 
@@ -203,7 +254,7 @@ class Crawler:
                 continue
 
             text = page.soup.get_text(" ", strip=True)
-            relevance = cosine(text, self.query) if self.query else 0.0
+            page_relevance = relevance(text, self.query, url) if self.query else 0.0
             title = page.css("title") or url
 
             links = []
@@ -218,14 +269,14 @@ class Crawler:
             result.graph[url] = [link["url"] for link in links]
             result.pages.append({
                 "url": url, "title": title[:120], "score": round(score, 4),
-                "relevance": round(relevance, 4), "depth": depth,
+                "relevance": round(page_relevance, 4), "depth": depth,
                 "order": len(result.pages) + 1,
             })
 
             self.on_visit(url, links)
 
             if depth < max_depth:
-                for child_url, child_score in self.score_links(url, links, relevance, depth):
+                for child_url, child_score in self.score_links(url, links, page_relevance, depth):
                     if child_url not in visited:
                         depth_of.setdefault(child_url, depth + 1)
                         frontier.push(child_url, child_score)
@@ -270,16 +321,16 @@ class SharkSearch(Crawler):
         self._inherited[url] = 1.0
         return 1.0
 
-    def score_links(self, url, links, relevance, depth):
+    def score_links(self, url, links, page_relevance, depth):
         # Inheritance: if the parent was relevant, children inherit its
         # relevance; otherwise they inherit what the parent had inherited.
         # Either way with delta decay: a branch with no signal fades as delta^n.
         parent_inherited = self._inherited.get(url, 0.0)
-        inherited = self.delta * (relevance if relevance > 0.05 else parent_inherited)
+        inherited = self.delta * (page_relevance if page_relevance > 0.05 else parent_inherited)
         scored = []
         for link in links:
             url_words = " ".join(_tokens(urlparse(link["url"]).path))
-            local = cosine(f'{link["anchor"]} {url_words}', self.query)
+            local = relevance(f'{link["anchor"]} {url_words}', self.query)
             score = self.gamma * inherited + (1 - self.gamma) * local
             self._inherited[link["url"]] = inherited
             scored.append((link["url"], score))
@@ -322,7 +373,7 @@ class OPIC(Crawler):
             self.cash[t] = self.cash.get(t, 0.0) + share
             self._known_unvisited.add(t)
 
-    def score_links(self, url, links, relevance, depth):
+    def score_links(self, url, links, page_relevance, depth):
         # Cash was already distributed in on_visit; the score IS the accumulated cash.
         return [(link["url"], self.cash.get(link["url"], 0.0)) for link in links]
 
@@ -338,18 +389,102 @@ def pagerank(graph: dict[str, list[str]], damping: float = 0.85,
     if not nodes:
         return {}
     n = len(nodes)
+    # Filter each node's out-links to known nodes once, not once per iteration.
+    out = {u: [v for v in graph.get(u, ()) if v in nodes] for u in nodes}
+    sinks = [u for u, outs in out.items() if not outs]
     rank = {u: 1.0 / n for u in nodes}
     for _ in range(iterations):
-        new = {u: (1 - damping) / n for u in nodes}
-        for u in nodes:
-            out = [v for v in graph.get(u, []) if v in nodes]
-            if out:
-                share = damping * rank[u] / len(out)
-                for v in out:
-                    new[v] += share
-            else:  # sink: distribute to all (virtual node)
-                share = damping * rank[u] / n
-                for v in nodes:
+        # A sink has nowhere to send its rank, so it spreads evenly over every
+        # node. Summing that mass first and adding it to the base keeps the
+        # pass O(nodes + edges); pushing it per sink is O(sinks x nodes), which
+        # is quadratic on a crawl graph, where most discovered URLs were never
+        # visited and are therefore sinks.
+        base = (1 - damping) / n + damping * sum(rank[u] for u in sinks) / n
+        new = dict.fromkeys(nodes, base)
+        for u, outs in out.items():
+            if outs:
+                share = damping * rank[u] / len(outs)
+                for v in outs:
                     new[v] += share
         rank = new
-    return dict(sorted(rank.items(), key=lambda kv: kv[1], reverse=True))
+    # Ties are the norm, not the exception: every sink holds the same rank, and
+    # a crawl graph is mostly sinks. Break them by URL so the ranking is stable
+    # across runs (set iteration order shifts with the per-process hash seed).
+    return dict(sorted(rank.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
+# --- strategy comparison ----------------------------------------------------
+# The registry the servers and the demo all needed a copy of. One name per
+# strategy, so a crawl requested over HTTP, over MCP or in Python means the
+# same thing everywhere.
+STRATEGIES: dict[str, type[Crawler]] = {
+    "bfs": BFS, "shark": SharkSearch, "opic": OPIC,
+}
+
+
+def _leg(name: str, start: str, query: str, max_pages: int, max_depth: int,
+         delay: float, timeout: int) -> dict:
+    """One strategy's leg of a comparison. Never raises: a strategy that fails
+    reports inside its own entry so the other two still come back."""
+    try:
+        result = STRATEGIES[name](query=query, delay=delay, timeout=timeout).crawl(
+            start, max_pages=max_pages, max_depth=max_depth)
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+    return {
+        "stats": result.stats,
+        "relevant": len(result.relevant()),
+        "pages": result.top(max_pages),
+    }
+
+
+def compare(start: str, query: str, max_pages: int = 20, max_depth: int = 4,
+            delay: float = 0.2, timeout: int = 10) -> dict:
+    """Run every strategy over one site on the same budget, side by side.
+
+    A single ordering looks like any other crawler's. The case for having
+    frontier strategies at all only shows up in the comparison: on a Wikipedia
+    seed with a topical query, Shark-Search returns pages about the topic where
+    BFS returns whatever was linked first.
+
+    The three run concurrently — sequentially this is three times the wall
+    clock, which is the difference between a usable API call and a timeout.
+    Each Crawler builds its own Scraper, so its own requests Session; nothing
+    is shared. The per-crawler delay is multiplied by the number of strategies
+    because all of them hit the same host at once, which keeps the aggregate
+    rate on that host the same as a single crawl's.
+
+    Returns {"strategies": {name: {stats, relevant, pages} | {error}},
+             "winner": name | None, "tied": [names sharing the top score]}.
+
+    `tied` matters: on a small or uniformly relevant site every strategy finds
+    the same pages, and reporting whichever one the dict happened to list first
+    as "the winner" would read as a result when it is a coin flip.
+    """
+    if not query:
+        raise ValueError(
+            "compare needs a query: with nothing to be relevant to, the "
+            "strategies aren't comparable (use a single crawler instead)")
+    names = list(STRATEGIES)
+    with ThreadPoolExecutor(max_workers=len(names)) as pool:
+        legs = list(pool.map(
+            lambda n: _leg(n, start, query, max_pages, max_depth,
+                           delay * len(names), timeout),
+            names))
+    results = dict(zip(names, legs))
+
+    ok = {n: r for n, r in results.items() if "error" not in r}
+
+    def _score(name: str) -> tuple[int, float]:
+        # Most relevant pages wins. A tie goes to whichever ranked them higher
+        # on average — finding the same count but scoring it better is exactly
+        # what a frontier strategy is for.
+        pages = ok[name]["pages"]
+        mean = sum(p["relevance"] for p in pages) / len(pages) if pages else 0.0
+        return ok[name]["relevant"], mean
+
+    if not ok:
+        return {"strategies": results, "winner": None, "tied": []}
+    best = max(_score(n) for n in ok)
+    tied = sorted(n for n in ok if _score(n) == best)
+    return {"strategies": results, "winner": tied[0], "tied": tied}

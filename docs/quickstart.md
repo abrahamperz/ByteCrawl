@@ -12,4 +12,4 @@ print(page.css("h1"))
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: HTML estático →](01-html-estatico.md)
+[← Volver al índice](../README.es.md) · [Siguiente: HTML estático →](01-html-estatico.md)

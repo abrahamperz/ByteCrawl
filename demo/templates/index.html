@@ -1,15 +1,23 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ByteCrawl · Methods playground</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+<!-- The font used to come in through an @import at the top of the CSS. That request
+     can't start until the CSS is parsed, so every page rendered its first frame
+     in -apple-system and reflowed to Inter once the font landed — the logo
+     visibly changed size, and how long it lasted depended on which page you
+     opened and how warm the cache was. As <link> in the head it starts with
+     the document, identically on all four pages. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
   :root {
     --bg: #ffffff;
     --panel: #ffffff;
@@ -26,11 +34,26 @@
     --mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  /* Reserve the scrollbar gutter whether or not the page scrolls, so a short
+     page and a long one have the same usable width and the centred .wrap —
+     nav logo, footer logo — doesn't shift sideways when you navigate. */
+  html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+  /* nav is sticky (60px), so an anchor jump would land the target under it */
+  [id] { scroll-margin-top: 78px; }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5;
+    /* Same footer anchoring as every other page: pinned to the bottom of the
+       viewport while the page is shorter than one screen, following the content
+       once it isn't. Pages differ in length, so without this the footer sits at
+       a different height on each one and its logo appears to jump as you move
+       between them. */
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
+  footer { margin-top: auto; }
   a { color: inherit; text-decoration: none; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
@@ -45,10 +68,12 @@
   .gh-ico { display: block; }
   .navlinks a:hover { color: var(--text); }
   .navlinks a.active { color: var(--text); font-weight: 600; }
-  .lang-sw { display: inline-flex; gap: 2px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
-  .lang-btn { background: none; border: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); padding: 3px 7px; border-radius: 6px; cursor: pointer; }
+  .lang-sw { display: inline-flex; align-items: center; gap: 13px; }
+  .lang-btn { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 2px 0; cursor: pointer; transition: color .15s; }
   .lang-btn:hover { color: var(--text); }
-  .lang-btn.active { background: var(--text); color: #fff; }
+  .lang-sw::before { content: "|"; color: var(--border-2); font-size: 13px; }
+  .menu-btn { display: none; background: none; border: 0; cursor: pointer; color: var(--text);
+    padding: 6px; align-items: center; }
 
   /* HEADER */
   header.head { text-align: center; padding: 70px 0 40px; position: relative; overflow: hidden; }
@@ -57,6 +82,7 @@
   h1 { font-size: 44px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.08; max-width: 680px; margin: 0 auto 18px; }
   .sub { font-size: 17px; color: var(--muted); max-width: 560px; margin: 0 auto 26px; }
   .strat { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 860px; margin: 0 auto; }
+  .strat-label-2 { margin-top: 14px; }
   .strat-label { width: 100%; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 4px; }
   .strat-step { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; }
   .strat-step .n { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
@@ -69,19 +95,28 @@
   .card h2 { font-size: 17px; margin-bottom: 2px; }
   .card .micro { color: var(--muted); font-size: 12px; margin-bottom: 10px; font-family: var(--mono); }
   .card .desc { color: var(--muted); font-size: 13.5px; line-height: 1.55; min-height: 58px; }
+  /* The API chip has to read as a different kind of link from the practice-site
+     chip next to it. That was the one blue left on the site, so the difference
+     is carried by weight and a darker edge instead of a hue. */
+  .api-chip { font-weight: 600; border-color: var(--border-2); }
   .site { display: inline-block; margin: 10px 0 16px; font-size: 11px; color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); padding: 4px 9px; border-radius: 6px; font-family: var(--mono); align-self: flex-start; text-decoration: none; transition: .15s; }
   .site:hover { border-color: var(--border-2); color: var(--text); }
   .site .site-label { color: var(--muted-2); font-family: inherit; }
   .btn { background: var(--text); color: #fff; border: none; border-radius: 9px; padding: 10px 16px; font-weight: 600; font-size: 14px; cursor: pointer; align-self: flex-start; transition: .15s; font-family: inherit; }
   .btn:hover { background: #27272a; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .status { font-size: 12.5px; margin: 12px 0 0; min-height: 18px; display: flex; align-items: center; }
+  /* Every box in this row is a whole number of pixels on purpose. With the
+     inherited line-height of 1.5 the chip's content box came out at 18.75px, so
+     `align-items: center` landed its text on a half-pixel and the digits
+     rendered blurry. 20px row, 18px chip line, 14px spinner (+2px border either
+     side = 18px) all centre cleanly inside the 26px row. */
+  .status { font-size: 14px; line-height: 20px; margin: 12px 0 0; min-height: 26px; display: flex; align-items: center; gap: 6px; }
   .status.run { color: var(--muted); }
-  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .status.ok { color: var(--accent); font-weight: 600; }
   .status.err { color: var(--red); }
-  .time { margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--amber); background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 6px; font-family: var(--mono); }
+  .time { margin-left: 2px; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .result { margin-top: 14px; display: none; }
   .result.show { display: block; }
   .count { font-size: 12px; color: var(--accent); margin: 8px 0; font-weight: 600; font-family: var(--mono); }
@@ -97,7 +132,15 @@
   .bar-track { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; height: 18px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 5px; }
   .tag { display: inline-block; background: var(--panel-2); color: var(--muted); font-size: 10px; padding: 1px 6px; border-radius: 4px; margin: 1px; border: 1px solid var(--border); }
-  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; text-align: center; }
+    .foot-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+    font-size: 17px; letter-spacing: -.4px; color: var(--text); }
+  .foot-mark { width: 22px; height: 22px; border-radius: 6px; display: block; }
+  .foot-meta { display: block; margin-top: 8px; }
+  /* Its own line-height rather than the body's: /docs sets 1.6 for prose and
+     the other pages 1.5, which made the docs footer ~3px taller. Anchored to
+     the bottom of the viewport, that extra height comes off the top and the
+     logo sits higher there than everywhere else. */
+  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
 
   /* ADVANCED METHODS */
   .adv { border-top: 1px solid var(--border); padding: 50px 0 80px; }
@@ -114,15 +157,30 @@
   .adv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
   .adv-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
   .adv-card h3 { font-size: 14px; font-family: var(--mono); margin-bottom: 2px; }
-  .adv-card .what { font-size: 12px; color: var(--muted); margin-bottom: 10px; min-height: 32px; }
-  .adv-card .nums { font-family: var(--mono); font-size: 12px; color: var(--muted-2); display: flex; flex-direction: column; gap: 3px; }
-  .adv-card .nums b { color: var(--text); }
-  .adv-card ol { margin: 10px 0 0 16px; font-size: 11.5px; color: var(--muted-2); }
-  .adv-card ol li { margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .adv-card ol a { color: inherit; text-decoration: none; }
-  .adv-card ol a:hover { color: var(--text); text-decoration: underline; }
-  .adv-card .rel { color: var(--amber); font-weight: 700; font-family: var(--mono); font-size: 10.5px; }
-  .adv-card.winner { border-color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+  /* Results cards — same component as the playground's Graph crawl grid. It is
+     one comparison presented on two pages, so it gets one design.
+     minmax(0,…) rather than 1fr: a long percent-encoded URL in one card would
+     otherwise widen its column and squeeze the other two. */
+  .cmp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .cmp-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--panel); }
+  .cmp-win { border-color: var(--text); }
+  /* A card that hasn't landed yet holds its column at roughly the height it
+     will end up at, so the grid doesn't jump as each run arrives. */
+  .cmp-idle { opacity: .6; min-height: 96px; }
+  .cmp-fail { color: var(--red); }
+  .cmp-head { font-size: 14px; margin-bottom: 6px; }
+  .cmp-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; background: var(--text); color: #fff; border-radius: 5px; padding: 2px 6px; margin-left: 4px; }
+  .cmp-nums { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 10px; }
+  /* max-width:0 is the standard trick that makes ellipsis work inside a fixed
+     table: it lets the cell shrink to its share of the column instead of to its
+     content. The truncation lives on the td, so the anchor inside keeps it. */
+  .cmp-card table { table-layout: fixed; width: 100%; }
+  .cmp-card td:first-child { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cmp-card td:last-child { width: 52px; }
+  /* Without this a link is indistinguishable from plain text, so the rows give
+     no hint that they are clickable. */
+  .pm-link { color: inherit; text-decoration: none; }
+  .pm-link:hover { text-decoration: underline; text-underline-offset: 2px; }
   .adv-explain { margin: 0 0 26px; }
   .adv-explain .exp { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
   .adv-explain .formula { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted-2); background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; margin: 8px 0; }
@@ -133,15 +191,35 @@
 
   @media (max-width: 820px) {
     .wrap { padding: 0 22px; }
-    nav .row { flex-wrap: wrap; height: auto; padding: 14px 18px; gap: 12px 18px; position: relative; }
-    .navlinks { width: 100%; margin-left: 0; gap: 18px; flex-wrap: wrap; font-size: 14px; }
-    .lang-sw { position: absolute; top: 16px; right: 18px; }
+    /* mobile nav: logo + hamburger; links live in a dropdown */
+    nav .row { height: 56px; position: relative; }
+    [id] { scroll-margin-top: 72px; }
+    .menu-btn { display: inline-flex; margin-left: auto; }
+    .navlinks { display: none; }
+    nav.open .navlinks {
+      display: flex; flex-direction: column; align-items: stretch;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 60;
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 2px 22px 16px; gap: 0; margin: 0;
+      box-shadow: 0 14px 28px rgba(0,0,0,.07);
+    }
+    nav.open .navlinks a {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 14px 2px; font-size: 16px; font-weight: 500; color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    nav.open .navlinks a:hover { color: var(--text); }
+    nav.open .gh-link::after { content: "GitHub"; }
+    nav.open .navlinks .lang-sw { margin-top: 14px; align-self: flex-start; }
+    nav.open .lang-sw::before { display: none; }
     header.head { padding: 44px 0 28px; }
     h1 { font-size: 32px; }
     .grid { grid-template-columns: 1fr; }
     .adv { padding: 36px 0 60px; }
     .adv-form .fld, .adv-form .fld.q { flex: 1 1 100%; min-width: 0; }
     .adv-form .btn { width: 100%; }
+    /* Three fixed columns of truncated URLs are unreadable on a phone. */
+    .cmp-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -151,9 +229,12 @@
   <div class="wrap row">
     <a class="logo" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo-mark">ByteCrawl</a>
     <div class="navlinks">
-      <a href="/docs" data-i18n="nav_docs">Docs</a><a class="active" href="/methods" data-i18n="nav_methods">Methods</a><a href="/try" data-i18n="nav_try">Try</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a href="/docs" data-i18n="nav_docs">Docs</a><a class="active" href="/methods" data-i18n="nav_methods">Methods</a><a href="/playground" data-i18n="nav_try">Playground</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
       <span class="lang-sw"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button><button class="lang-btn" data-lang="pt">PT</button></span>
     </div>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
+    </button>
   </div>
 </nav>
 
@@ -162,20 +243,18 @@
     <div class="eyebrow" data-i18n="m_eyebrow">The methods</div>
     <h1 data-i18n="m_h1">Every scraping strategy, explained</h1>
     <p class="sub" data-i18n-html="m_sub">What each technique does, the site it targets, and when to reach for it.
-      Want to run them live? Open the <a href="/try" style="color:var(--text);font-weight:600;text-decoration:underline">playground</a>.</p>
+      Want to run them live? Open the <a href="/playground" style="color:var(--text);font-weight:600;text-decoration:underline">playground</a>.</p>
     <div class="strat">
-      <div class="strat-label" data-i18n="m_strat_label">The order to try, from cleanest to most expensive</div>
+      <div class="strat-label" data-i18n="m_strat_label">How to fetch one page — cheapest first</div>
       <span class="strat-step" data-i18n-html="m_s_api"><span class="n">3</span> Is there an API?</span>
       <span class="strat-arrow">→</span>
       <span class="strat-step" data-i18n-html="m_s_static"><span class="n">1</span> Static HTML?</span>
       <span class="strat-arrow">→</span>
-      <span class="strat-step" data-i18n-html="m_s_js"><span class="n">2</span> JS only?</span>
-      <span class="strat-arrow">→</span>
-      <span class="strat-step" data-i18n-html="m_s_many"><span class="n">4</span> Thousands of pages?</span>
-      <span class="strat-arrow">→</span>
+      <span class="strat-step" data-i18n-html="m_s_js"><span class="n">2</span> Needs JS?</span>
+      <div class="strat-label strat-label-2" data-i18n="m_strat_label2">Then, depending on the job</div>
+      <span class="strat-step" data-i18n-html="m_s_many"><span class="n">4</span> A whole site?</span>
       <span class="strat-step" data-i18n-html="m_s_login"><span class="n">5</span> Behind login?</span>
-      <span class="strat-arrow">→</span>
-      <span class="strat-step" data-i18n-html="m_s_download"><span class="n">6</span> Download the output</span>
+      <span class="strat-step" data-i18n-html="m_s_md"><span class="n">＋</span> For an LLM?</span>
     </div>
   </div>
 </header>
@@ -188,6 +267,7 @@
       <div class="micro">{{ t.subtitle }}</div>
       <div class="desc" data-i18n="card_{{ key }}_d">{{ t.description }}</div>
       <a class="site" href="https://{{ t.site }}" target="_blank" rel="noopener"><span class="site-label" data-i18n="card_site_label">practice site:</span> {{ t.site }} ↗</a>
+      {% if t.api %}<a class="site api-chip" href="/api{{ t.api }}&url=https://{{ t.site }}" target="_blank" rel="noopener"><span class="site-label" data-i18n="card_api_label">via API:</span> /api{{ t.api }} ↗</a>{% endif %}
     </div>
     {% endfor %}
   </div>
@@ -236,18 +316,19 @@
       <button class="btn" id="adv-run" data-i18n="adv_run">Run comparison</button>
     </div>
     <div class="status" id="adv-status"></div>
-    <div class="adv-grid" id="adv-grid"></div>
+    <div class="cmp-grid" id="adv-grid"></div>
     <div class="adv-pr" id="adv-pr"></div>
   </div>
 </section>
 
-<footer><div class="wrap">ByteCrawl — universal scraping layer · MIT</div></footer>
+<footer><div class="wrap"><a class="foot-brand" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="foot-mark">ByteCrawl</a>
+    <span class="foot-meta">Crawling for AI agents · MIT</span></div></footer>
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
 const ADV = {
-  bfs:   { title: "BFS",          whatKey: "adv_what_bfs" },
-  shark: { title: "Shark-Search", whatKey: "adv_what_shark" },
-  opic:  { title: "OPIC",         whatKey: "adv_what_opic" },
+  bfs:   { title: "BFS" },
+  shark: { title: "Shark-Search" },
+  opic:  { title: "OPIC" },
 };
 
 document.getElementById("adv-run").addEventListener("click", runComparison);
@@ -275,6 +356,9 @@ async function runComparison() {
   grid.innerHTML = ""; prBox.innerHTML = "";
   const results = {};
   _advResults = results;
+  // Paint the three columns empty straight away — each fills in place when its
+  // own request lands, so the grid doesn't reflow three times.
+  renderCards(results);
   const pending = new Set(["bfs", "shark", "opic"]);
   const showPending = () => {
     status.className = "status run";
@@ -283,63 +367,99 @@ async function runComparison() {
   try {
     showPending();
     await Promise.all(["bfs", "shark", "opic"].map(async strat => {
-      const r = await fetch("/crawl", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, query, strategy: strat }),
-      });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error || "Error");
-      results[strat] = j;
+      try {
+        const r = await fetch("/crawl", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, query, strategy: strat }),
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || "Error");
+        results[strat] = j;
+      } catch (e) {
+        // One strategy failing is not a reason to blank the other two, so the
+        // error is reported inside its own card.
+        results[strat] = { err: String(e.message || e) };
+      }
       pending.delete(strat);
       if (pending.size) showPending();
       renderCards(results);
     }));
+    // Only a total wipeout is a page-level error.
+    const landed = Object.values(results).filter(j => !j.err);
+    if (!landed.length) {
+      status.className = "status err";
+      status.textContent = "✗ " + (Object.values(results)[0] || {}).err;
+      return;
+    }
     status.className = "status ok";
     status.textContent = "✓ " + t("adv_done");
     renderPagerank(results.opic);
-  } catch (e) {
-    status.className = "status err"; status.textContent = "✗ " + e;
   } finally { btn.disabled = false; }
 }
 
+// The same card the playground renders for a Graph crawl — one comparison
+// shown on two pages, so it gets one design. Strategies that haven't landed
+// yet keep their place in the grid as a spinner, in a fixed order, so the
+// layout doesn't reshuffle as each request comes back.
 function renderCards(results) {
   const grid = document.getElementById("adv-grid");
-  const best = Object.entries(results).sort(
+  const seedHost = advHost(document.getElementById("adv-url").value.trim());
+  // "best" is a claim about all three orderings, so it waits for all three.
+  // Awarding it early would just mark whichever strategy was fastest.
+  const settled = Object.keys(results).length === 3;
+  const best = Object.entries(results).filter(([, j]) => !j.err).sort(
     (a, b) => b[1].stats.avg_relevance - a[1].stats.avg_relevance)[0]?.[0];
-  grid.innerHTML = ["bfs", "shark", "opic"].filter(s => results[s]).map(strat => [strat, results[strat]]).map(([strat, j]) => `
-    <div class="adv-card${strat === best && Object.keys(results).length === 3 ? " winner" : ""}">
-      <h3>${ADV[strat].title}${strat === best && Object.keys(results).length === 3 ? " 🏆" : ""}</h3>
-      <div class="what">${t(ADV[strat].whatKey)}</div>
-      <div class="nums">
-        <span>${t("adv_pages")}: <b>${j.stats.requests} / ${j.stats.requests + (j.stats.frontier_left || 0)}</b> ${t("adv_disc")} · ${t("adv_time")}: <b>${j.stats.elapsed}s</b></span>
-        <span>${t("adv_avgrel")}: <b>${j.stats.avg_relevance}</b> · ${t("adv_relevant")}: <b>${j.stats.relevant_found ?? "—"}</b></span>
-      </div>
-      <ol>${topPages(j.pages).map(p =>
-        `<li title="${esc(p.url)}"><span class="rel">${p.relevance.toFixed(2)}</span> <a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(short(p.url))}</a></li>`).join("")}
-      </ol>
-    </div>`).join("");
-}
-
-// Most relevant first, deduped by displayed path
-function topPages(pages) {
-  const seen = new Set();
-  return [...pages].sort((a, b) => b.relevance - a.relevance)
-    .filter(p => { const k = short(p.url); if (seen.has(k)) return false; seen.add(k); return true; })
-    .slice(0, 5);
+  grid.innerHTML = ["bfs", "shark", "opic"].map(strat => {
+    const won = settled && strat === best;
+    const head = `<div class="cmp-head"><b>${ADV[strat].title}</b>` +
+      `${won ? ' <span class="cmp-badge">best</span>' : ""}</div>`;
+    const j = results[strat];
+    if (!j) {
+      return `<div class="cmp-card cmp-idle">${head}` +
+        `<div class="cmp-nums"><span><span class="spinner"></span>${esc(t("pm_cmp_running"))}</span></div></div>`;
+    }
+    if (j.err) {
+      return `<div class="cmp-card cmp-idle">${head}` +
+        `<div class="cmp-nums cmp-fail"><span>✗ ${esc(j.err)}</span></div></div>`;
+    }
+    // Every row is a page you can go read, so every row is a link.
+    const rows = [...j.pages].sort((a, b) => b.relevance - a.relevance).slice(0, 5).map(p =>
+      `<tr><td title="${esc(p.url)}"><a href="${esc(p.url)}" target="_blank" rel="noopener" class="pm-link">${esc(short(p.url, seedHost))}</a></td>` +
+      `<td style="text-align:right;font-family:var(--mono)">${p.relevance.toFixed(3)}</td></tr>`).join("");
+    const disc = j.stats.requests + (j.stats.frontier_left || 0);
+    return `<div class="cmp-card${won ? " cmp-win" : ""}">${head}
+      <div class="cmp-nums"><span>${j.stats.relevant_found ?? "—"} ${esc(t("adv_relevant"))}</span><span>${esc(t("adv_avgrel"))} ${j.stats.avg_relevance}</span><span>${j.stats.requests}/${disc} ${esc(t("adv_pages"))}</span><span>${j.stats.elapsed}s</span></div>
+      <table>${rows}</table>
+    </div>`;
+  }).join("");
 }
 
 function renderPagerank(j) {
   if (!j || !j.pagerank?.length) return;
+  const seedHost = advHost(document.getElementById("adv-url").value.trim());
   document.getElementById("adv-pr").innerHTML =
     `<strong>${t("adv_pr")}</strong> ` +
-    j.pagerank.map(p => `<a href="${esc(p.url)}" target="_blank" rel="noopener"><code>${esc(short(p.url))} (${p.score})</code></a>`).join(" · ");
+    j.pagerank.map(p => `<a href="${esc(p.url)}" target="_blank" rel="noopener"><code>${esc(short(p.url, seedHost))} (${p.score})</code></a>`).join(" · ");
 }
 
-function short(u) { try { const x = new URL(u); return (x.pathname === "/" ? x.hostname : x.pathname).slice(0, 48); } catch { return u.slice(0, 48); } }
+function advHost(u) { try { return new URL(u).host; } catch (_) { return ""; } }
+
+// A crawl stays on one root domain, but that includes every language
+// subdomain, so en./ast./ar.wikipedia.org pages share a pathname. Labelling by
+// path alone made distinct pages look like duplicates; show the host whenever
+// it differs from the seed's. Truncation is CSS (fixed table + ellipsis), so
+// the full URL stays in the title attribute.
+function short(u, seedHost) {
+  try {
+    const x = new URL(u);
+    const path = decodeURI(x.pathname + x.search) || "/";
+    return x.host === seedHost ? path : x.host + path;
+  } catch (_) { return u; }
+}
 
 
-// Deep analyzer entry from /try: ?url=... prefills and auto-runs the comparison
+// Deep analyzer entry from /playground: ?url=... prefills and auto-runs the comparison
 window.addEventListener("DOMContentLoaded", () => {
   const u = new URLSearchParams(location.search).get("url");
   if (!u) return;
@@ -349,6 +469,19 @@ window.addEventListener("DOMContentLoaded", () => {
   runComparison();
 });
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+</script>
+<script>
+  // mobile nav toggle
+  (function () {
+    const btn = document.querySelector('.menu-btn');
+    if (!btn) return;
+    const nav = btn.closest('nav');
+    btn.addEventListener('click', () => {
+      btn.setAttribute('aria-expanded', nav.classList.toggle('open'));
+    });
+    nav.querySelectorAll('.navlinks a').forEach(a =>
+      a.addEventListener('click', () => nav.classList.remove('open')));
+  })();
 </script>
 </body>
 </html>
