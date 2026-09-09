@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.2.0 — 2026-09-09
+
+### Added
+- **`Page.selectors()` — extraction without having read the markup.** Writing an
+  `extract()` call means knowing the classes on the page, and an agent connected
+  over MCP could not: `fetch_markdown` strips exactly the classes and attributes
+  a selector is built from, and no tool returns HTML on purpose, since raw markup
+  costs more tokens than the data it is meant to locate. So this reports the
+  structure instead of the source — the blocks that repeat, the inner selectors
+  that resolve across most instances, and a sample record for each, which is a
+  runnable `item` + `fields` rather than something to interpret.
+
+  Two heuristics do the work. A repeated wrapper and the card inside it appear
+  equally often, so the one that offers nothing its own child does not is
+  dropped: `article.product_pod` survives, `li.col-xs-6.col-sm-4.col-md-3` does
+  not. And a column whose element contains another column's is thrown away,
+  because its text is every child's text run together — `div.product_price`
+  otherwise comes back as "£51.77In stockAdd to basket".
+
+### Changed
+- **`extract` called with only a url now discovers instead of failing.** It used
+  to raise "extract needs 'item' and 'fields', or 'select'" — refusing the one
+  question an agent can ask about a page it has not seen. The same call works on
+  every surface: the MCP tool, `/api?method=extract` without `select`, and the
+  playground's Extract chip with the field left empty, which lists the blocks it
+  found and turns each into a button that fills the selector and runs it.
+- The demo API no longer sorts JSON keys. The discovered fields come back ranked
+  with the most useful selector first and the playground offers that one as the
+  button; sorted alphabetically, `books.toscrape.com` led with `a::attr(href)`.
+
 ## 1.1.3 — 2026-09-09
 
 ### Added

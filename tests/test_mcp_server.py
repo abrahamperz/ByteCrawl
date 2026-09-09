@@ -55,9 +55,13 @@ def test_extract_rejects_both_shapes(http):
                            select="h3")
 
 
-def test_extract_rejects_neither_shape(http):
-    with pytest.raises(ValueError, match="'item' and 'fields', or 'select'"):
-        mcp_server.extract("https://x.test/")
+def test_extract_with_nothing_is_discovery_not_an_error(http):
+    """This used to raise. Refusing a bare call was refusing the only question
+    an agent can ask about a page it has not seen."""
+    http.routes["https://x.test/"] = FakeResponse(
+        text="<p>" + "enough visible text to stay static " * 10 + "</p>")
+    out = mcp_server.extract("https://x.test/")
+    assert "candidates" in out
 
 
 def test_list_links_tool(http):
@@ -152,3 +156,23 @@ def test_fetch_json_api_tool(http):
         json_data={"ok": True}, headers={"content-type": "application/json"})
     out = mcp_server.fetch_json_api("https://api.test/x")
     assert out["data"] == {"ok": True}
+
+
+def test_extract_with_only_a_url_discovers(http):
+    """The bare call is not an error, it is the question before the extraction:
+    an agent that has not seen the markup cannot invent a selector, and no tool
+    here returns HTML for it to read."""
+    http.routes["https://x.test/"] = FakeResponse(
+        text="<p>" + "enough visible text to stay static " * 10 + "</p>"
+        + "".join(f"<article class='card'><h3>W{i}</h3>"
+                  f"<p class='price'>£{i}</p></article>" for i in range(5)))
+    out = mcp_server.extract("https://x.test/")
+    assert "candidates" in out and out["candidates"]
+    top = out["candidates"][0]
+    assert top["item"] == "article.card" and top["count"] == 5
+    assert "hint" in out and "extract again" in out["hint"]
+
+
+def test_extract_rejects_item_without_fields(http):
+    with pytest.raises(ValueError, match="go together"):
+        mcp_server.extract("https://x.test/", item="article.card")

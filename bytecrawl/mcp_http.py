@@ -129,7 +129,10 @@ def fetch_markdown(url: str) -> dict:
 
 
 @server.tool(description=(
-    "Extract data from a public page with CSS selectors: 'item'+'fields' for "
+    "Extract data from a public page with CSS selectors. Call it with ONLY the "
+    "url to discover what is extractable — it returns the page's repeated "
+    "blocks with ready-to-use item + fields and a sample record each, which is "
+    "what you need when you have not seen the markup. Then 'item'+'fields' for "
     "structured records (::text / ::attr(name); a field name ending in [] "
     "collects a list), or 'select' on its own for a flat list of one "
     "selector's values."

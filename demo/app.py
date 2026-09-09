@@ -37,6 +37,11 @@ atexit.register(posthog_client.shutdown)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "bytecrawl-dev-secret")
+# Flask sorts JSON keys by default, which throws away orderings that mean
+# something: the discovered fields come back ranked with the most useful
+# selector first, and the playground offers exactly that one as the button.
+# Sorted alphabetically, books.toscrape.com leads with `a::attr(href)`.
+app.json.sort_keys = False
 
 
 def _get_distinct_id() -> str:
@@ -459,9 +464,13 @@ def api():
             return _ok(cache_key, {"url": url, "method": "json", "data": page.json()})
         if method == "extract":
             select = (src.get("select") or "").strip()
-            if not select:
-                return jsonify({"error": "method=extract needs a 'select' CSS selector"}), 400
             page = bot.static(url)
+            if not select:
+                # No selector is not an error, it is the question before it:
+                # "what can I pull off this page?" Answering with the repeated
+                # blocks lets the next call be a real extraction.
+                return _ok(cache_key, {"url": url, "method": "extract",
+                                "candidates": page.selectors()})
             return _ok(cache_key, {"url": url, "method": "extract", "select": select,
                             "values": page.css_all(select)})
         if method in ("crawl", "shark", "opic", "bfs"):

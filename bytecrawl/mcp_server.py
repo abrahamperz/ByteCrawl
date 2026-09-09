@@ -61,34 +61,51 @@ def fetch_markdown(url: str) -> dict:
 
 @server.tool(
     description=(
-        "Extract data from a page with CSS selectors, in one of two shapes. "
-        "For structured records: 'item' delimits each record (e.g. "
-        "'article.product') and 'fields' maps names to relative selectors "
-        "supporting ::text and ::attr(name), e.g. "
-        '{"title": "h3 a::attr(title)", "price": "p.price::text"}; a field '
-        "name ending in [] collects a list. For a flat list of one selector's "
-        "values across the page, pass 'select' on its own instead, e.g. "
-        "'h3 a::attr(title)'."
+        "Extract data from a page with CSS selectors. Three shapes. Call it "
+        "with ONLY the url to discover what is extractable: it returns the "
+        "page's repeated blocks, each with a ready-to-use item + fields and a "
+        "sample record — use this whenever you have not seen the markup. "
+        "Then call it with 'item' (the selector delimiting one record, e.g. "
+        "'article.product') and 'fields' (names to relative selectors "
+        'supporting ::text and ::attr(name), e.g. {"title": '
+        '"h3 a::attr(title)", "price": "p.price::text"}; a name ending in [] '
+        "collects a list). Or pass 'select' alone for a flat list of one "
+        "selector's values across the page, e.g. 'h3 a::attr(title)'."
     )
 )
 def extract(url: str, item: str = "", fields: dict[str, str] | None = None,
             select: str = "") -> dict:
-    # Two shapes, one tool: agents reach for a single selector far more often
-    # than for a record schema, and making them invent an `item` wrapper for
-    # that case is how you get malformed calls.
+    # Three shapes, one tool. Agents reach for a single selector far more
+    # often than for a record schema, and an agent that has never seen the
+    # page can produce neither: fetch_markdown strips exactly the classes a
+    # selector is built from, and no tool here returns HTML — deliberately,
+    # since raw markup costs more tokens than the data it is meant to locate.
+    # So the bare call answers the question the agent actually has, which is
+    # "what is on this page and how do I ask for it?"
     if select and (item or fields):
         raise ValueError("pass either 'select' or 'item'+'fields', not both")
-    if not select and not (item and fields):
-        raise ValueError("extract needs 'item' and 'fields', or 'select'")
-    # Both checks run before the fetch: a malformed call shouldn't cost the
-    # target site a request.
+    if bool(item) != bool(fields):
+        raise ValueError("'item' and 'fields' go together — or pass neither "
+                         "to see what this page offers")
+    # Checked before the fetch: a malformed call shouldn't cost the site a
+    # request.
     page = _scraper.fetch(url)
     if select:
         values = page.css_all(select)
         return {"url": url, "select": select, "count": len(values),
                 "values": values}
-    records = page.extract(item, fields)
-    return {"url": url, "count": len(records), "records": records}
+    if item:
+        records = page.extract(item, fields)
+        return {"url": url, "count": len(records), "records": records}
+    candidates = page.selectors()
+    return {
+        "url": url,
+        "candidates": candidates,
+        "hint": ("call extract again with the item and fields of whichever "
+                 "candidate holds what you want" if candidates else
+                 "no repeated blocks here — this page is probably not a "
+                 "listing; pass 'select' with a specific selector instead"),
+    }
 
 
 @server.tool(

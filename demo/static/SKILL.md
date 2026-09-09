@@ -41,10 +41,10 @@ Then:
 - **1 and 2 need a topic**, not optionally. Relevance is measured against it,
   so without one there is nothing to rank and the crawl is just an expensive
   BFS. Ask for it before starting.
-- **4 does not need them to know a selector.** Ask what they want off the page
-  in their own words, fetch it, and find the selector yourself. Note that over
-  MCP alone you cannot see the markup — no tool returns HTML — so use the
-  hosted API's `?method=html` for that step, or the library's `page.html`.
+- **4 does not need them to know a selector.** Call `extract` with only the
+  url: it comes back with the page's repeated blocks, each with a runnable
+  `item` + `fields` and a sample record. Show the samples, let them pick the
+  block that holds what they asked for, then call `extract` again with it.
 - **6 usually needs finding first.** The endpoint is whatever the page calls in
   the background; if they do not have the URL, offer to look for it.
 
@@ -153,6 +153,7 @@ There is no `status` field: a fetch that fails comes back as `error` instead.
 | Raw HTML | `?url=SITE&method=html` |
 | All links | `?url=SITE&method=links` |
 | A JSON endpoint | `?url=SITE&method=json` |
+| What can I even extract here? | `?url=SITE&method=extract` (no select) |
 | Typed extraction | `?url=SITE&method=extract&select=h3 a::attr(title)` |
 | Focused crawl | `?url=SITE&method=crawl&query=TOPIC&strategy=shark` |
 | Compare all three strategies | `?url=SITE&method=compare&query=TOPIC` |

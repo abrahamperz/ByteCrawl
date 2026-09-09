@@ -10,7 +10,7 @@ Shark-Search y OPIC en Python puro.
 - **Web**: https://bytecrawl.vercel.app/
 - **Endpoint MCP hosteado**: https://bytecrawl.vercel.app/mcp
 - **Skill para agentes**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Última versión**: **1.1.3** — seis herramientas MCP, comparación de
+- **Última versión**: **1.2.0** — seis herramientas MCP, comparación de
   estrategias, `Page.links()` absolutos ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 - **PyPI**: https://pypi.org/project/bytecrawl/
 - **GitHub**: https://github.com/abrahamperz/ByteCrawl
@@ -57,7 +57,7 @@ El agente queda con seis herramientas — las mismas seis cosas que el playgroun
 | `focused_crawl` | Recorre un sitio y rankea páginas por relevancia a una consulta (Shark-Search / OPIC / BFS) |
 | `compare_strategies` | Corre las tres sobre el mismo sitio con el mismo presupuesto y muestra cuál gana |
 | `fetch_markdown` | Una página → Markdown limpio (5–10× menos tokens que el HTML crudo) |
-| `extract` | Registros estructurados vía selectores CSS, o una lista plana de un selector |
+| `extract` | Registros estructurados vía selectores CSS — o llámalo solo con la URL y te dice qué ofrece la página |
 | `list_links` | Todos los links salientes, absolutos y deduplicados |
 | `fetch_json_api` | Pegarle a una API JSON oculta |
 
