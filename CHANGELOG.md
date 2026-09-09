@@ -16,6 +16,17 @@
   endpoint does not recognise "hit a hidden JSON API", and someone who wants a
   price off a listing does not know what a CSS selector is. It asks in whatever
   language you wrote in. Invoked with a task, it skips the question and does it.
+- The skill now tells the agent **how to run and present a crawl**, which it
+  never covered. A crawl is the one slow thing here — 8 seconds for 10 pages,
+  half a minute for 20 — and nothing streams progress, so it now states the
+  budget and the wait before starting. It defaults to 20 pages, reads
+  `stats.requests` to see whether the hosted cap clamped the request instead of
+  reporting the number it asked for, and shows the ranking as titles, URLs and
+  relevance plus one line of stats — including `frontier_left`, the URLs found
+  but never visited, which is what tells you a bigger budget would find more.
+  It also warns that relevance is cosine similarity, so short pages whose title
+  repeats the query score highest and Wikipedia category pages tend to top the
+  ranking.
 - The skill now says **what to ask for**. It documented four surfaces and eight
   API methods without a single example of a request a person would make, so it
   told an agent how to call things and told a reader nothing.

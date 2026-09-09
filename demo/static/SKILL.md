@@ -24,18 +24,17 @@ because this file is; the question is not.
 Name each option by what the person gets, not by the mechanism. Someone who
 needs the JSON endpoint behind a page will not recognise "hit a hidden JSON
 API", and someone who needs a price out of a listing does not know what a CSS
-selector is. Keep the technical name in parentheses for whoever does:
+selector is. Lead with the two things nothing else does — the other four are
+ordinary scraping and can share a line:
 
 > What do you want to do?
 >
-> 1. **Find everything on a site about a topic** — I walk it under a page budget and rank what I find by how well it matches (focused crawl)
-> 2. **See which crawling strategy wins on a site** — the same budget spent three ways, side by side (Shark-Search vs OPIC vs BFS)
-> 3. **Turn a page into clean text** — headings and prose, none of the navigation and scripts, at a fraction of the tokens (Markdown)
-> 4. **Pull specific fields off a page** — prices, titles, ratings, one row per item
-> 5. **Get every link on a page** — full URLs, no duplicates, no anchors or images
-> 6. **Get the data behind a page** — many sites fill themselves from a JSON endpoint; reading that directly is cleaner and cheaper than parsing the HTML
+> **1. Find everything on a site about a topic** — I walk it under a page budget and rank what I find by how well it matches
+> **2. Compare how three crawlers spend that same budget** — the same site, three orderings, side by side
 >
-> Send me a URL — and the topic too, if you picked 1 or 2.
+> Or something simpler, on one page: **3.** clean text · **4.** specific fields (prices, titles…) · **5.** every link · **6.** the data behind it
+>
+> Send me a URL — and the topic too, for 1 or 2.
 
 Then:
 
@@ -43,9 +42,45 @@ Then:
   so without one there is nothing to rank and the crawl is just an expensive
   BFS. Ask for it before starting.
 - **4 does not need them to know a selector.** Ask what they want off the page
-  in their own words, fetch it, and find the selector yourself.
+  in their own words, fetch it, and find the selector yourself. Note that over
+  MCP alone you cannot see the markup — no tool returns HTML — so use the
+  hosted API's `?method=html` for that step, or the library's `page.html`.
 - **6 usually needs finding first.** The endpoint is whatever the page calls in
   the background; if they do not have the URL, offer to look for it.
+
+## Running a crawl without making them wait in the dark
+
+A crawl is the one thing here that takes real time, and how much depends on the
+delay between requests. Measured: the hosted API runs with no delay and did 10
+pages in 8 seconds wall clock; the library at the recommended `delay=0.5` takes
+about 1.5s per page, so 20 pages is a little over half a minute. Nothing streams
+progress, so silence is all they get unless you set expectations.
+
+- **Say the budget and the wait before you start**, in one line: "visiting 20
+  pages, about 30 seconds". Then run it.
+- **Default to 20 pages** when they do not say. It is enough for the ordering
+  to separate the strategies and still finishes inside a minute. The hosted API
+  and hosted MCP cap at 10 (6 per strategy for a comparison) and clamp silently
+  — check `stats.requests` for what actually ran and tell them the cap applied,
+  rather than reporting the number you asked for.
+
+## Showing the result
+
+The tools hand back JSON. Do not paste it.
+
+- **The pages, ranked**: title, URL and relevance for the top 5-10. The URLs are
+  the deliverable — keep them clickable and do not shorten them to pathnames,
+  because a crawl spans subdomains and two pages can share a path.
+- **One line of stats**: pages visited, how many cleared the relevance bar, and
+  `frontier_left` — the URLs found but not visited. That number is what tells
+  them a bigger budget would find more, and it is usually in the thousands.
+- **For a comparison**, the three relevant-page counts side by side is the whole
+  point; lead with those, then the winner's ranking. If `tied` has more than one
+  name, say the site did not separate them instead of crowning one.
+- Relevance is cosine similarity over page text and URL path, so short pages
+  whose title repeats the query score very high. On Wikipedia the top hits are
+  often category and stub pages. Say so if the ranking looks odd rather than
+  presenting it as a judgment of quality.
 
 If you were invoked *with* a task, skip all of this and do it.
 
