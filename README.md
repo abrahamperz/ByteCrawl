@@ -15,7 +15,7 @@ and OPIC in pure Python.
 - **Webpage**: https://bytecrawl.vercel.app/
 - **Hosted MCP endpoint**: https://bytecrawl.vercel.app/mcp
 - **Agent skill**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Latest release**: **1.1.2** — six MCP tools, strategy comparison,
+- **Latest release**: **1.2.0** — six MCP tools, strategy comparison,
   absolute `Page.links()` ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 
 ## Point an agent at it (no install, no key)
@@ -33,6 +33,19 @@ or a real browser for JS-rendered pages), documents how to select a crawl
 strategy, and includes measured numbers for what that choice buys you.
 [Read it yourself](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
 
+That line works for one turn. Install it once and `/bytecrawl` is there in every
+session, with the agent reaching for it on its own:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Run it bare and it asks what you want — crawl a site for a topic, compare the
+strategies, read a page, extract fields, list links, or pull a JSON API. Give it
+a task instead and it just does it.
+
 ## Quick start (MCP — nothing to install)
 
 Point any MCP-capable agent (Claude Code, Claude Desktop, Cursor...) at the
@@ -49,7 +62,7 @@ Now the agent has six tools — the same six things the playground lets a human 
 | `focused_crawl` | Crawl a site, rank pages by relevance to a query (Shark-Search / OPIC / BFS) |
 | `compare_strategies` | Run all three over the same site on the same budget and see which one wins |
 | `fetch_markdown` | One page → clean Markdown (5–10× fewer tokens than raw HTML) |
-| `extract` | Structured records via CSS selectors, or a flat list from one selector |
+| `extract` | Structured records via CSS selectors — or call it with just a URL and it tells you what the page offers |
 | `list_links` | Every outbound link, absolute and deduplicated |
 | `fetch_json_api` | Hit a hidden JSON API |
 

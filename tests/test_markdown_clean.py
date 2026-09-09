@@ -1,5 +1,7 @@
 """_clean_markdown heuristics: carousel dedup, heading merges, spacing."""
 
+import pytest
+
 from bytecrawl.core import _clean_markdown
 
 LONG_BLOCK = "Power your AI agents with clean structured web data at any scale"
@@ -44,3 +46,40 @@ class TestSpacingFix:
 
     def test_empty_input(self):
         assert _clean_markdown("") == ""
+
+
+class TestMainContentFallback:
+    """Article extraction is built to discard repetition — which on a listing
+    page is the content. It returned the price column of books.toscrape.com
+    and dropped all twenty book titles, and the token count then advertised
+    that as a 144x saving.
+    """
+
+    LISTING = ("<html><body><nav>Home Shop</nav>" + "".join(
+        f"<article class='p'><h3><a title='Book {i}'>Book {i}</a></h3>"
+        f"<p class='price'>£{i}.00</p></article>" for i in range(20)) + "</body></html>")
+
+    def test_falls_back_when_extraction_guts_the_page(self, monkeypatch):
+        from bytecrawl.core import Page
+        page = Page(url="https://x.test/", html=self.LISTING)
+        trafilatura = pytest.importorskip("trafilatura")
+        # stand in for what it really does here: return a sliver of the page
+        monkeypatch.setattr(trafilatura, "extract", lambda *a, **kw: "£0.00\n\n£1.00")
+        md = page.markdown()
+        assert "Book 0" in md and "Book 19" in md, "titles were dropped"
+
+    def test_keeps_extraction_when_it_looks_sane(self, monkeypatch):
+        from bytecrawl.core import Page
+        page = Page(url="https://x.test/", html=self.LISTING)
+        trafilatura = pytest.importorskip("trafilatura")
+        full = page.soup.get_text(" ", strip=True)
+        monkeypatch.setattr(trafilatura, "extract", lambda *a, **kw: full)
+        assert page.markdown().startswith("Home Shop")
+
+    def test_the_floor_sits_well_below_real_pages(self):
+        """Measured: 1.14x of visible text on quotes.toscrape.com and 1.4-1.6x
+        on Wikipedia, against 0.19x on the page that broke. A higher floor
+        would fire on an article buried in navigation and hand back the
+        navigation that was correctly removed."""
+        from bytecrawl.core import Page
+        assert Page._MAIN_CONTENT_FLOOR < 0.5

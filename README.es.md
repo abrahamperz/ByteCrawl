@@ -10,7 +10,7 @@ Shark-Search y OPIC en Python puro.
 - **Web**: https://bytecrawl.vercel.app/
 - **Endpoint MCP hosteado**: https://bytecrawl.vercel.app/mcp
 - **Skill para agentes**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Última versión**: **1.1.2** — seis herramientas MCP, comparación de
+- **Última versión**: **1.2.0** — seis herramientas MCP, comparación de
   estrategias, `Page.links()` absolutos ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 - **PyPI**: https://pypi.org/project/bytecrawl/
 - **GitHub**: https://github.com/abrahamperz/ByteCrawl
@@ -31,6 +31,19 @@ documenta cómo elegir una estrategia de crawl e incluye números medidos de qu�
 te da esa elección.
 [Léela tú mismo](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
 
+Esa línea sirve para un turno. Instálala una vez y `/bytecrawl` queda en todas
+las sesiones, y el agente la usa por su cuenta:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Córrela sin nada y te pregunta qué quieres — recorrer un sitio por tema, comparar
+las estrategias, leer una página, extraer campos, listar links o pegarle a una API
+JSON. Dale una tarea y la hace directo.
+
 ## Inicio rápido (MCP — nada que instalar)
 
 ```bash
@@ -44,7 +57,7 @@ El agente queda con seis herramientas — las mismas seis cosas que el playgroun
 | `focused_crawl` | Recorre un sitio y rankea páginas por relevancia a una consulta (Shark-Search / OPIC / BFS) |
 | `compare_strategies` | Corre las tres sobre el mismo sitio con el mismo presupuesto y muestra cuál gana |
 | `fetch_markdown` | Una página → Markdown limpio (5–10× menos tokens que el HTML crudo) |
-| `extract` | Registros estructurados vía selectores CSS, o una lista plana de un selector |
+| `extract` | Registros estructurados vía selectores CSS — o llámalo solo con la URL y te dice qué ofrece la página |
 | `list_links` | Todos los links salientes, absolutos y deduplicados |
 | `fetch_json_api` | Pegarle a una API JSON oculta |
 

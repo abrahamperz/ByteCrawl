@@ -92,3 +92,49 @@ class TestPageExtraction:
     def test_tokens_estimate(self):
         p = Page(url="https://x.test", html="a" * 400)
         assert p.tokens() == 100
+
+
+class TestSelectorDiscovery:
+    """page.selectors(): the answer to "I have never seen this markup"."""
+
+    LISTING = ("<html><body><div class='grid'>" + "".join(
+        f"<li class='col-md-3'><article class='card'>"
+        f"<h3><a href='/b{i}' title='Book {i}'>Book {i}</a></h3>"
+        f"<p class='price'>£{i}.00</p><p class='stock'>In stock</p>"
+        f"</article></li>" for i in range(6)) + "</div></body></html>")
+
+    def _page(self):
+        from bytecrawl.core import Page
+        return Page(url="https://x.test/", html=self.LISTING)
+
+    def test_finds_the_repeating_record(self):
+        top = self._page().selectors()[0]
+        assert top["item"] == "article.card"
+        assert top["count"] == 6
+
+    def test_fields_are_runnable_and_sampled(self):
+        top = self._page().selectors()[0]
+        # every proposed selector must actually work through extract()
+        rows = self._page().extract(top["item"], top["fields"])
+        assert len(rows) == 6
+        assert top["sample"] == rows[0]
+        assert any(v == "£0.00" for v in rows[0].values())
+
+    def test_layout_wrapper_loses_to_the_record(self):
+        """li.col-md-3 repeats exactly as often and wraps the card, so it
+        scores the same on count — but it offers nothing the card does not."""
+        items = [c["item"] for c in self._page().selectors()]
+        assert "li.col-md-3" not in items
+
+    def test_no_field_is_always_empty(self):
+        """An <a> wrapping only an <img> reports no text; proposing a::text
+        for it would hand back a column that is blank in every row."""
+        for cand in self._page().selectors():
+            rows = self._page().extract(cand["item"], cand["fields"])
+            for name in cand["fields"]:
+                assert any(r[name] for r in rows), f"{name} is empty everywhere"
+
+    def test_a_page_with_no_listing_returns_nothing(self):
+        from bytecrawl.core import Page
+        page = Page(url="https://x.test/", html="<html><body><p>Just prose.</p></body></html>")
+        assert page.selectors() == []

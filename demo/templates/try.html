@@ -111,6 +111,14 @@
   .result { margin-top: 14px; display: none; }
   .result.show { display: block; }
   .count { font-size: 14px; color: var(--muted-2); font-weight: 600; font-family: inherit; }
+  /* Discovered blocks: the selector is a button, because the point is to put
+     it in the field and run it, not to admire it. */
+  .cand { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .cand-pick { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2);
+    border: 1px solid var(--border-2); border-radius: 8px; padding: 6px 11px; margin-bottom: 10px;
+    font-family: inherit; font-size: 13px; cursor: pointer; transition: .15s; }
+  .cand-pick:hover { border-color: var(--accent); background: #fff; }
+  .cand-n { color: var(--muted); font-size: 12px; }
   .count-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 8px; }
   .dl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; font-family: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border-2); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: .15s; white-space: nowrap; }
   .dl:hover { background: var(--panel-2); border-color: var(--text); }
@@ -408,6 +416,32 @@ function pmRender(mode, d, url) {
   const out = document.getElementById('azr-out');
   const link = (h, l) => `<a href="${pmEscape(h)}" target="_blank" rel="noopener" class="pm-link">${pmEscape(l)}</a>`;
   if (mode === 'extract') {
+    // Leaving the selector empty asks the other question — "what is on this
+    // page?" — so the API answers with the repeated blocks it found. Each is
+    // offered as a button that fills the field and runs it, which is how
+    // someone who has never read the markup gets to a working extraction.
+    if (d.candidates) {
+      if (!d.candidates.length) {
+        out.innerHTML = `<div class="count-row"><span class="count">${t('pm_no_blocks')}</span></div>`;
+        return;
+      }
+      out.innerHTML = `<div class="count-row"><span class="count">${t('pm_found_blocks')}</span></div>` +
+        d.candidates.map(c => {
+          const cols = Object.entries(c.fields).map(([k, v]) =>
+            `<tr><td><code>${pmEscape(k)}</code></td><td><code>${pmEscape(v)}</code></td>` +
+            `<td>${pmEscape(String(c.sample[k] ?? '').slice(0, 60))}</td></tr>`).join('');
+          return `<div class="cand">
+            <button class="cand-pick" data-sel="${pmEscape(Object.values(c.fields)[0])}">
+              <code>${pmEscape(c.item)}</code> <span class="cand-n">\u00d7${c.count}</span>
+            </button>
+            <div class="tablewrap"><table>${cols}</table></div></div>`;
+        }).join('');
+      out.querySelectorAll('.cand-pick').forEach(b => b.onclick = () => {
+        document.getElementById('azr-extra').value = b.dataset.sel;
+        document.getElementById('azr-go').click();
+      });
+      return;
+    }
     const rows = (d.values || []).map(v => `<tr><td>${pmEscape(v)}</td></tr>`).join('');
     out.innerHTML = `<div class="count-row"><span class="count">${(d.values || []).length} values · <code>${pmEscape(d.select)}</code></span></div>
       <div class="tablewrap"><table>${rows}</table></div>`;

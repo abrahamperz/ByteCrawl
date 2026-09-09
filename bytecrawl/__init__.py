@@ -40,4 +40,4 @@ __all__ = [
     "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult", "STRATEGIES",
     "pagerank", "cosine", "compare",
 ]
-__version__ = "1.1.2"
+__version__ = "1.2.0"

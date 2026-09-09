@@ -116,3 +116,40 @@ class TestHostedMcp:
                                   "arguments": {"url": "http://169.254.169.254/"}})
         text = json.dumps(out)
         assert "non-public" in text, text[:200]
+
+
+class TestPublishedVersion:
+    """What the repo advertises has to be what `pip install` gives you."""
+
+    def _pypi(self) -> str:
+        with urllib.request.urlopen(  # noqa: S310
+                "https://pypi.org/pypi/bytecrawl/json", timeout=TIMEOUT) as r:
+            return json.loads(r.read())["info"]["version"]
+
+    def test_the_readme_version_is_installable(self):
+        """The README states a "Latest release" to people who will never open
+        the changelog. If it names a version that is not on PyPI, everyone who
+        follows it installs something older and never learns why."""
+        import re
+        from pathlib import Path
+
+        import bytecrawl
+
+        root = Path(__file__).resolve().parent.parent
+        advertised = re.search(r"\*\*Latest release\*\*: \*\*([\d.]+)\*\*",
+                               (root / "README.md").read_text()).group(1)
+        assert advertised == bytecrawl.__version__      # offline suite covers this
+        published = self._pypi()
+        assert advertised == published, (
+            f"README and the package say {advertised}, PyPI serves {published} — "
+            "publish it, or the docs describe a release nobody can install")
+
+    def test_the_site_shows_the_published_version(self):
+        """/docs renders it from the package, so a deploy behind PyPI shows a
+        version people cannot get, and one ahead promises what is not there."""
+        import re
+        req = urllib.request.Request(f"{BASE}/docs")
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310
+            shown = re.search(r'<span class="pill">v([\d.]+)</span>',
+                              r.read().decode()).group(1)
+        assert shown == self._pypi(), f"/docs shows v{shown}, PyPI serves {self._pypi()}"
