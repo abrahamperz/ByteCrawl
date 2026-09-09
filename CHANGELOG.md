@@ -19,7 +19,27 @@
   because its text is every child's text run together — `div.product_price`
   otherwise comes back as "£51.77In stockAdd to basket".
 
+### Fixed
+- **`markdown()` was throwing the page away on listings.** Main-content
+  extraction is built to discard repetition — which on a listing page is the
+  content. On `books.toscrape.com`, the first URL the README tells you to curl,
+  it returned the price column and dropped all twenty book titles: 358
+  characters out of 1,851 of visible text. It now checks what came back against
+  the page's own text and falls back to full-page conversion when the
+  extractor kept under a quarter of it. Measured, that floor sits far below
+  every good case (1.14x of visible text on quotes.toscrape.com, 1.4-1.6x on
+  Wikipedia) and just above the one that broke (0.19x), so an article buried in
+  navigation still gets the boilerplate stripped.
+
+  With the content back, the saving is 4.8x on books.toscrape.com, 5.8x on
+  quotes and 6.6x on a Wikipedia article — the 5-10x the README claims. The
+  broken version scored 144x, which was not a saving.
+
 ### Changed
+- `fetch_markdown` returns `tokens_html` next to `tokens_estimate`, the pair the
+  playground already showed. On its own the token count has nothing to compare
+  against; beside the raw HTML it is the reason to have called the tool, and an
+  agent can state the saving instead of asserting it.
 - **`extract` called with only a url now discovers instead of failing.** It used
   to raise "extract needs 'item' and 'fields', or 'select'" — refusing the one
   question an agent can ask about a page it has not seen. The same call works on

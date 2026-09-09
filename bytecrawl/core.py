@@ -307,6 +307,16 @@ class Page:
         return self.data
 
     # --- LLM ----------------------------------------------------------------
+    # Below this share of the page's visible text, main-content extraction has
+    # not trimmed boilerplate — it has thrown the content away. Measured:
+    # trafilatura keeps 1.14x the visible text on quotes.toscrape.com and 1.4-1.6x
+    # on Wikipedia articles (markdown adds link syntax), but 0.19x on
+    # books.toscrape.com, where it returns the price column and drops all
+    # twenty book titles. The threshold sits far below every good case on
+    # purpose: a news article buried in navigation legitimately scores low, and
+    # falling back there would hand back the navigation it correctly removed.
+    _MAIN_CONTENT_FLOOR = 0.25
+
     def markdown(self, main_only: bool = True) -> str:
         """Converts the page to clean Markdown (saves tokens for LLMs)."""
         if main_only:
@@ -316,7 +326,11 @@ class Page:
                 # include_links keeps link boundaries; without it adjacent
                 # nodes glue together ("Visit siteSierra")
                 md = trafilatura.extract(self.html, output_format="markdown", include_links=True)
-                if md:
+                # A listing is all repetition, which is exactly what an
+                # article extractor is built to discard, so check what came
+                # back before trusting it.
+                visible = len(self.soup.get_text(" ", strip=True))
+                if md and (not visible or len(md) / visible >= self._MAIN_CONTENT_FLOOR):
                     return _clean_markdown(md)
             except ImportError:
                 pass

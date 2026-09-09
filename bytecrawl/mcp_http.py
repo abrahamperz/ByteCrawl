@@ -121,7 +121,8 @@ server = MCPServer(
 
 @server.tool(description=(
     "Fetch a public web page and return it as clean Markdown for LLM "
-    "consumption. Static HTML only on the hosted server."
+    "consumption, with tokens_estimate against tokens_html so you can "
+    "state the saving. Static HTML only on the hosted server."
 ))
 def fetch_markdown(url: str) -> dict:
     _guarded(url)

@@ -44,16 +44,22 @@ server = MCPServer(
 @server.tool(
     description=(
         "Fetch a web page and return it as clean Markdown, ready for LLM "
-        "consumption (5-10x fewer tokens than raw HTML)."
+        "consumption. Reports tokens_estimate against tokens_html so you "
+        "can state the saving rather than assume it (typically 5-10x)."
     )
 )
 def fetch_markdown(url: str) -> dict:
     page = _scraper.fetch(url)
     md = page.markdown()
+    # tokens_html alongside it, the same pair the playground shows. On its own
+    # tokens_estimate is a number with nothing to compare against; next to the
+    # raw HTML it is the reason to have called this instead of reading the
+    # page, and the agent can say so rather than assert it.
     return {
         "url": url,
         "markdown": md,
         "tokens_estimate": page.tokens(md),
+        "tokens_html": page.tokens(),
         "method": page.method,
         "status": page.status,
     }
