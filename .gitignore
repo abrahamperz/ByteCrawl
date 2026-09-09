@@ -28,3 +28,15 @@ examples/*.md
 # testing
 .coverage
 .pytest_cache/
+
+# `vercel build` run locally converts the requirements files into a uv project
+# and drops these next to each entrypoint. Committing them would change what
+# Vercel installs (it prefers a pyproject/uv.lock over requirements.txt).
+/uv.lock
+/.python-version
+demo/pyproject.toml
+demo/uv.lock
+demo/.python-version
+api/pyproject.toml
+api/uv.lock
+api/.python-version
