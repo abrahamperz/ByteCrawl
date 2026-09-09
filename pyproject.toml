@@ -47,9 +47,10 @@ version = { attr = "bytecrawl.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q -m 'not live'"
+addopts = "-q -m 'not live and not smoke'"
 markers = [
     "live: tests that hit real websites and need Playwright (run with: pytest -m live)",
+    "smoke: tests against the deployed site — network, no CI (run with: pytest -m smoke)",
 ]
 
 [tool.ruff]

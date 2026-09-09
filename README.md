@@ -15,7 +15,7 @@ and OPIC in pure Python.
 - **Webpage**: https://bytecrawl.vercel.app/
 - **Hosted MCP endpoint**: https://bytecrawl.vercel.app/mcp
 - **Agent skill**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Latest release**: **1.1.1** — six MCP tools, strategy comparison,
+- **Latest release**: **1.1.2** — six MCP tools, strategy comparison,
   absolute `Page.links()` ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 
 ## Point an agent at it (no install, no key)
