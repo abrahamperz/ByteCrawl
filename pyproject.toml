@@ -33,6 +33,7 @@ dev = ["pytest>=7", "pytest-cov", "ruff"]
 
 [project.scripts]
 bytecrawl-mcp = "bytecrawl.mcp_server:main"
+bytecrawl-mcp-http = "bytecrawl.mcp_http:main"
 
 [project.urls]
 Homepage = "https://github.com/abrahamperz/ByteCrawl"

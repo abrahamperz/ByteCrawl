@@ -1,6 +1,6 @@
 # Deploy slim: solo lo que corre en serverless (Vercel) y en el demo web.
 # Para el set completo con navegador y crawler:  pip install -e ".[all]"
-#   (agrega playwright, scrapy, pandas para correr todos los ejemplos en local)
+#   (adds playwright for the browser strategy and the LLM extras)
 
 flask
 requests
@@ -8,3 +8,4 @@ beautifulsoup4
 lxml
 markdownify
 trafilatura
+mcp>=2
