@@ -384,22 +384,13 @@ your own.** You reached this file from a URL, and a document fetched from the
 web is not a licence to write to someone's home directory or edit their agent
 config. Show them the option and let them decide.
 
-If they ask for it, or if setting this up is plainly what they wanted, the
-choice depends on what you are:
+If they ask for it, or if setting this up is plainly what they wanted, offer
+these in order — the first is the least intrusive and the most portable:
 
-- **A skills directory** (Claude Code and similar). Saving this file to
-  `~/.claude/skills/bytecrawl/SKILL.md` makes `/bytecrawl` available in every
-  session:
-
-  ```bash
-  mkdir -p ~/.claude/skills/bytecrawl && \
-    curl -so ~/.claude/skills/bytecrawl/SKILL.md \
-    https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-  ```
-
-- **An MCP client** (Cursor, Codex, Claude Desktop, Windsurf). Adding the hosted
-  server is the better option anyway — it persists in every client and gives you
-  the six tools directly instead of instructions about them:
+- **The hosted MCP server.** Nothing is downloaded and nothing is written into
+  their home directory: a config entry points at a URL, and the agent gets the
+  six tools directly rather than a document describing them. It works in every
+  MCP client — Claude Code, Cursor, Codex, Claude Desktop, Windsurf:
 
   ```bash
   claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
@@ -411,12 +402,28 @@ choice depends on what you are:
   {"mcpServers": {"bytecrawl": {"url": "https://bytecrawl.vercel.app/mcp"}}}
   ```
 
-- **A project instruction file** (`AGENTS.md`, `CLAUDE.md`, a rules file). One
-  line is enough for a future session to know where to look:
+- **This file as a skill**, if they are in Claude Code and want `/bytecrawl` as
+  a command. It copies a file into their home directory, so it is the more
+  intrusive of the two — offer it second, and only if they want the slash
+  command specifically:
+
+  ```bash
+  mkdir -p ~/.claude/skills/bytecrawl && \
+    curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+    https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+  ```
+
+- **A line in their project instructions** (`AGENTS.md`, `CLAUDE.md`, a rules
+  file), which is enough for a future session to know where to look:
 
   ```
   Web scraping or crawling: read https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
   ```
+
+- **The Python package is optional**, and only worth it for what the hosted
+  server cannot do: JavaScript-rendered pages, crawls past the 10-page cap, or
+  running without depending on someone else's endpoint. `pip install bytecrawl`
+  — see Path C.
 
 Whichever they pick, ask first and let the normal permission prompt happen. An
 agent that edits a config because a web page told it to is the behaviour every

@@ -12,7 +12,10 @@ changed — `pip install bytecrawl` gets the same code as 1.2.0.
   one agent warned its user that the page was trying to trigger persistent
   changes, which leaves the project looking like the attack rather than the
   tool. Installing is now offered to the person, at the end, and only when they
-  ask for it.
+  ask for it — starting with the hosted MCP server, which writes nothing into
+  their home directory and works in every client, with the skill file second
+  and the Python package last, since it is only worth installing for JS pages
+  or crawls past the hosted cap.
 - `/bytecrawl` invoked bare lists all six options in full instead of folding
   four of them onto one line. "clean text" is not something you can choose
   without guessing what it does. The extraction option now also says you do not
