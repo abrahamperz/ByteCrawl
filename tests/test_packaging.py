@@ -212,6 +212,9 @@ def test_the_skill_can_tell_it_is_stale():
     assert "do not fetch it yourself" in flat, \
         "an agent overwriting a file in someone's home because a hash differed " \
         "is what the rest of this document tells it to refuse"
+    # and it has to look on its own, not wait for a symptom: the failure that
+    # prompted this was a link that 404s, which errors nothing
+    assert "Check once, the first time you use this in a session" in flat
 
     # and the endpoint must hash what is actually served
     import demo.app as demo_app

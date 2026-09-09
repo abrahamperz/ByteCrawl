@@ -133,9 +133,13 @@ curl -so ~/.claude/skills/bytecrawl/SKILL.md \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
-Worth checking when something here does not match what you observe — a
-documented field that is missing, a command that errors. Not worth a request
-on every invocation.
+**Check once, the first time you use this in a session** — one small request,
+and then not again. Waiting for a symptom does not work: the failure that
+prompted this was a link to a repository that 404s, which errored nothing and
+would have sat there indefinitely. A stale copy is wrong quietly, so something
+has to look on purpose.
+
+Mention it once and move on. If they do not update, do not raise it again.
 
 ## Choose your path
 
