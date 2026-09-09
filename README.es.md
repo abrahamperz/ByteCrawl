@@ -52,6 +52,12 @@ mkdir -p ~/.claude/skills/bytecrawl && \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
+Ese mismo comando es también cómo se actualiza. Instalarla copia el archivo, así
+que tu copia es una foto y los arreglos posteriores no le llegan:
+`/agent-onboarding/skill.json` publica el hash del archivo actual, y la skill lo
+revisa una vez por sesión y te avisa si el tuyo quedó atrás. No sobreescribe
+nada por su cuenta.
+
 Córrela sin nada y te pregunta qué quieres — recorrer un sitio por tema, comparar
 las estrategias, leer una página, extraer campos, listar links o pegarle a una API
 JSON. Dale una tarea y la hace directo.
@@ -68,7 +74,7 @@ El agente queda con seis herramientas — las mismas seis cosas que el playgroun
 |---|---|
 | `focused_crawl` | Recorre un sitio y rankea páginas por relevancia a una consulta (Shark-Search / OPIC / BFS) |
 | `compare_strategies` | Corre las tres sobre el mismo sitio con el mismo presupuesto y muestra cuál gana |
-| `fetch_markdown` | Una página → Markdown limpio (5–10× menos tokens que el HTML crudo) |
+| `fetch_markdown` | Una página → Markdown limpio (unas 6.5× menos tokens que el HTML crudo) |
 | `extract` | Registros estructurados vía selectores CSS — o llámalo solo con la URL y te dice qué ofrece la página |
 | `list_links` | Todos los links salientes, absolutos y deduplicados |
 | `fetch_json_api` | Pegarle a una API JSON oculta |
