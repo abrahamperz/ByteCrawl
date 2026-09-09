@@ -1,6 +1,6 @@
 # ONE dependency set for the whole deployment, duplicated on purpose.
 #
-# vercel.json declares two Python builds (demo/app.py and api/mcp_app.py) and
+# vercel.json declares two Python builds (web/landing/app.py and web/mcp/mcp_app.py) and
 # @vercel/python gives them a single shared venv. Each build installs its own
 # requirements file into it, and uv resolves that as a sync: whatever is not
 # in the file it just read gets pruned. So the build that runs second decides
@@ -9,7 +9,7 @@
 #
 #   ENOENT ... site-packages/babel-2.18.0.dist-info/METADATA
 #
-# (babel arrives via trafilatura -> courlan, and only the demo needed it).
+# (babel arrives via trafilatura -> courlan, and only the landing app needed it).
 #
 # Both files therefore carry the union, and must be kept identical. Neither
 # function needs every package; the venv they share does.

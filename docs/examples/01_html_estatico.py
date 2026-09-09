@@ -10,7 +10,7 @@ How to know this technique applies:
   - Open the page, right click -> "View page source".
   - If the data you want already shows up there (not empty), this works.
 
-Run:  python 01_estatico_bs4.py
+Run:  python 01_html_estatico.py
 """
 
 import csv
