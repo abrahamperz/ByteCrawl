@@ -10,7 +10,7 @@ Shark-Search y OPIC en Python puro.
 - **Web**: https://bytecrawl.vercel.app/
 - **Endpoint MCP hosteado**: https://bytecrawl.vercel.app/mcp
 - **Skill para agentes**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Última versión**: **1.1.0** — seis herramientas MCP, comparación de
+- **Última versión**: **1.1.1** — seis herramientas MCP, comparación de
   estrategias, `Page.links()` absolutos ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 - **PyPI**: https://pypi.org/project/bytecrawl/
 - **GitHub**: https://github.com/abrahamperz/ByteCrawl

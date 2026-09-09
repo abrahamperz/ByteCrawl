@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.1 — 2026-09-09
+
+### Fixed
+- **The hosted MCP endpoint answered every request with `421 Invalid Host
+  header`.** The transport enables DNS-rebinding protection whenever the app is
+  built for its default `127.0.0.1` host, and then allows only localhost — so
+  nothing reaching `bytecrawl.vercel.app` got through. That protection is for a
+  server bound to your own machine; this one is public, unauthenticated and
+  already behind an SSRF guard, so it now ships open. Set
+  `BYTECRAWL_ALLOWED_HOSTS` (and `BYTECRAWL_ALLOWED_ORIGINS`) to turn it back on
+  if you self-host on a domain that also serves authenticated apps.
+
 ## 1.1.0 — 2026-09-09
 
 **MCP: six tools instead of four.** Point any MCP-capable agent at ByteCrawl and
