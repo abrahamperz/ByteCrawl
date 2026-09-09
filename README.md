@@ -27,6 +27,18 @@ below — hand it the skill and let it choose:
 Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
+That one is for using it now — the agent reads the file, does what you asked,
+and installs nothing. To have it permanently instead, ask for that:
+
+```
+Set up bytecrawl for me: add the MCP server and install the skill.
+The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+The difference is not the wording, it is who is giving the instruction. An agent
+will not modify your machine because a web page told it to — nor should it —
+but it will when you ask.
+
 One Markdown file, readable by Claude Code, Cursor, or anything that can fetch a
 URL. It routes to the right path for the job (hosted API, MCP, Python library,
 or a real browser for JS-rendered pages), documents how to select a crawl
@@ -52,7 +64,7 @@ Point any MCP-capable agent (Claude Code, Claude Desktop, Cursor...) at the
 hosted endpoint:
 
 ```bash
-claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
 ```
 
 Now the agent has six tools — the same six things the playground lets a human do:
@@ -86,9 +98,9 @@ and refuses non-public URLs (SSRF guard). For heavy use or JS-rendered sites,
 run it locally:
 
 ```bash
-pip install bytecrawl[mcp]
-claude mcp add bytecrawl -- bytecrawl-mcp                 # full power, on your machine
-pip install bytecrawl[browser] && playwright install chromium   # + JS rendering
+pipx install "bytecrawl[mcp]"                              # pipx: it is a CLI app
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp     # full power, on your machine
+pipx install "bytecrawl[mcp,browser]" && playwright install chromium   # + JS rendering
 ```
 
 ## Why focused crawling?

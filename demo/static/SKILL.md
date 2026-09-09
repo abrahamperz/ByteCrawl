@@ -32,20 +32,26 @@ ordinary scraping and can share a line:
 
 > What do you want to do?
 >
-> **1. Find everything on a site about a topic** — I walk the site under a page budget and rank what I find by how well it matches
-> **2. Run all three crawlers and compare** — Shark-Search, OPIC and BFS over one site, the same number of pages each, side by side
+> **1. Find everything on a site about a query** — needs a site and a query. I walk it under a page budget and rank what I find by how well it matches
+> **2. Run all three crawlers and compare** — same site and query, three orderings side by side: Shark-Search, OPIC and BFS, the same number of pages each
 > **3. Turn a page into clean text** — headings and prose, no navigation or scripts, at a fraction of the tokens
-> **4. Pull specific fields off a page** — prices, titles, ratings, one row per item. You do not need to know the selectors; I read the page and work them out
+> **4. Pull specific fields off a page** — prices, titles, ratings, one row per item. Tell me what you want in words; I read the markup and work out the selectors (`p.price_color::text`, `h3 a::attr(title)`)
 > **5. Get every link on a page** — full URLs, no duplicates, no anchors or images
-> **6. Get the data behind a page** — many sites fill themselves from a JSON endpoint, and reading that directly is cleaner and cheaper than the HTML
+> **6. Get the data behind a page** — most listings render from a JSON endpoint the page fetches in the background. Reading that returns typed values straight off, no parsing and no selectors that break when the markup changes
 >
-> Send me a URL — and the topic too, if you picked 1 or 2.
+> Which one?
 
-Then:
+Once they pick, ask for what that one needs — not before. A menu and a request
+for input in the same breath is two questions at once, and the conditional
+("a query too, if you picked 1 or 2") only makes sense to someone who has
+already chosen.
 
-- **1 and 2 need a topic**, not optionally. Relevance is measured against it,
-  so without one there is nothing to rank and the crawl is just an expensive
-  BFS. Ask for it before starting.
+- **1 and 2 need a URL and a query.** `query` is the parameter's real name, and
+  it is not optional: relevance is measured against it, so without one there is
+  nothing to rank and the crawl is just an expensive BFS.
+- **3, 5 and 6 need a URL.** Nothing else.
+- **4 needs a URL** and a sentence about what they want off the page. Not a
+  selector — see below.
 - **4 does not need them to know a selector.** Call `extract` with only the
   url: it comes back with the page's repeated blocks, each with a runnable
   `item` + `fields` and a sample record. Show the samples, let them pick the
@@ -106,16 +112,106 @@ of a crawl ranked by your topic.
 
 ## Choose your path
 
-- **Need page content right now, install nothing** → Path A (hosted API)
-- **Your client speaks MCP** → Path B
-- **You are writing Python app code** → Path C
-- **The page is JavaScript-rendered and comes back empty** → Path D (browser)
+Three ways in. The first two install nothing.
+
+- **MCP server** — six tools in your agent. Hosted, so nothing to install. On
+  Claude Code take this file as a skill as well; they do different jobs
+- **Hosted API** — one GET request, no client, no account
+- **`pip install bytecrawl`** — the Python library, for application code, for
+  JavaScript-rendered pages, and for crawls past the hosted 10-page cap
 
 No API key, no account, no sign-up on any path.
 
 ---
 
-## Path A: Hosted API (no install)
+## If they asked you to set this up
+
+Then they asked, and that is the whole difference — the instruction is theirs,
+not this page's. Do it, with the normal permission prompt for anything that
+writes. On Claude Code that is two things, and both are wanted:
+
+```bash
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+The server gives you the six tools; the file gives `/bytecrawl` and the judgment
+about using them. Neither is the other half's substitute. On a client with no
+skills directory, the server alone is the whole answer.
+
+Then tell them, in one line each, the two things no success message shows: the
+tools appear once `/mcp` reconnects, and `/bytecrawl` exists from the next
+session, since skills load at startup. Nothing else — they asked for setup, not
+for a tour.
+
+## MCP server
+
+**Use the hosted one. It installs nothing.** No Python, no package, no binary —
+a config entry pointing at a URL:
+
+```bash
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+```
+
+Or in any MCP client's own config:
+
+```json
+{"mcpServers": {"bytecrawl": {"url": "https://bytecrawl.vercel.app/mcp"}}}
+```
+
+`--scope user` registers it for every project; without it the server is tied to
+whatever directory you happened to be in. Adding it writes config but does not
+connect it: the tools appear once `/mcp` reconnects or the session restarts.
+
+**On Claude Code, install this file as a skill too — the server alone is half
+of it.** The server gives you the six tools; this file gives the judgment about
+using them: which surface fits, which strategy to pick, what a result should
+look like, and `/bytecrawl` as a command. They are not alternatives:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Skills load at startup, so `/bytecrawl` appears in the next session, not the one
+that installed it. Ask before writing the file — see the end of this document.
+
+**The local server is for two specific needs** and costs an install, so do not
+reach for it by default. Take it only if the work needs JavaScript-rendered
+pages, or crawls past the hosted 10-page cap:
+
+```bash
+pipx install "bytecrawl[mcp]"        # pip works too, in a virtualenv
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp
+```
+
+pipx rather than pip because this is a command-line app, and because a
+system Python — Homebrew's on macOS, most Linux distributions — refuses a
+plain `pip install` with `error: externally-managed-environment`. pipx puts it
+in its own environment and on PATH, which is what a stdio MCP server needs.
+Inside a virtualenv, `pip install "bytecrawl[mcp]"` is fine. Python 3.10+
+either way, the floor of the `mcp` package; the hosted server has no such
+requirement because it is just HTTP.
+
+Both expose six tools:
+
+- `fetch_markdown(url)` — clean Markdown plus a token count
+- `extract(url, item, fields)` — typed records from repeated blocks;
+  or `extract(url, select)` for a flat list of one selector's values
+- `list_links(url)` — every outbound link, absolute and deduplicated
+- `focused_crawl(url, query, strategy, max_pages)` — ranked pages
+- `compare_strategies(url, query, max_pages)` — all three strategies on one
+  budget, side by side, with the winner (and `tied` when nothing separates
+  them). Three crawls: reach for `focused_crawl` when you just want pages
+- `fetch_json_api(url)` — parsed JSON from an endpoint
+
+---
+
+## Hosted API (no install)
 
 One GET. Everything except `url` is optional.
 
@@ -156,49 +252,11 @@ element's text.
 
 Limits: static HTML only, 10 pages per crawl, rate-limited, responses cached
 10 minutes. Private and loopback addresses are refused. If you need a real
-browser or a bigger budget, go to Path C.
+browser or a bigger budget, use the Python library.
 
 ---
 
-## Path B: MCP
-
-Hosted, nothing to install:
-
-```bash
-claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
-```
-
-Local (stdio), if you want no request cap and browser support:
-
-```bash
-pip install "bytecrawl[mcp]"
-claude mcp add bytecrawl -- bytecrawl-mcp
-```
-
-Or in any MCP client config:
-
-```json
-{"mcpServers": {"bytecrawl": {"command": "bytecrawl-mcp"}}}
-```
-
-The local server needs Python 3.10+ (the `mcp` package floor). The hosted one
-has no such requirement — it is just HTTP.
-
-Both expose six tools:
-
-- `fetch_markdown(url)` — clean Markdown plus a token count
-- `extract(url, item, fields)` — typed records from repeated blocks;
-  or `extract(url, select)` for a flat list of one selector's values
-- `list_links(url)` — every outbound link, absolute and deduplicated
-- `focused_crawl(url, query, strategy, max_pages)` — ranked pages
-- `compare_strategies(url, query, max_pages)` — all three strategies on one
-  budget, side by side, with the winner (and `tied` when nothing separates
-  them). Three crawls: reach for `focused_crawl` when you just want pages
-- `fetch_json_api(url)` — parsed JSON from an endpoint
-
----
-
-## Path C: Python library
+## Python library
 
 ```bash
 pip install bytecrawl
@@ -210,7 +268,7 @@ Add what you actually need:
 | Extra | Command | Unlocks |
 |---|---|---|
 | Markdown | `pip install "bytecrawl[llm]"` | `page.markdown()`, `page.tokens()` |
-| Browser | `pip install "bytecrawl[browser]"` | `Scraper.browser()` — see Path D |
+| Browser | `pip install "bytecrawl[browser]"` | `Scraper.browser()` — see below |
 | MCP | `pip install "bytecrawl[mcp]"` | the local `bytecrawl-mcp` server (Python 3.10+) |
 | Everything | `pip install "bytecrawl[all]"` | all of the above |
 
@@ -248,7 +306,7 @@ result.stats            # requests, errors, elapsed
 
 ---
 
-## Path D: JavaScript-rendered pages (install the browser)
+### JavaScript-rendered pages
 
 `bot.fetch(url)` always tries static HTML first, and escalates to a real
 browser only when the page comes back with under 200 characters of text — the
@@ -276,9 +334,9 @@ Under the hood this is Playwright driving headless Chromium over CDP, the same
 protocol Puppeteer uses. If you already run Node, you do not need Puppeteer as
 well; one browser is enough.
 
-**The hosted API (Path A) cannot do this.** It runs on serverless with no
+**The hosted API cannot do this.** It runs on serverless with no
 Chromium binary, so JS-rendered pages return their empty static HTML. Browser
-rendering requires Path C on your own machine or a container.
+rendering requires the library on your own machine or a container.
 
 ---
 
@@ -362,15 +420,15 @@ Defaults are reasonable; change them only if a crawl is drifting off-topic
 - The hosted API refuses private, loopback, and link-local addresses.
 
 Practice sites that allow scraping: `books.toscrape.com`, `quotes.toscrape.com`
-(and `quotes.toscrape.com/js/` for a JS-rendered page to test Path D).
+(and `quotes.toscrape.com/js/` for a JS-rendered page to test browser rendering).
 
 ## When something looks wrong
 
 1. Check which strategy ran before anything else — most surprises are a 403
-   or a page that needed the browser. On Path C that is `page.method` and
+   or a page that needed the browser. In the library that is `page.method` and
    `page.status`; over the API it is the `method` field (the API does not
    return a status, so a failed fetch comes back as an `error` instead).
-2. Empty Markdown with `method="static"` → the page is JS-rendered, go to Path D.
+2. Empty Markdown with `method="static"` → the page is JS-rendered, use a browser.
 3. `extract()` returns empty → the selector is wrong. Fetch `page.html` and
    check the real markup before changing anything else.
 4. A crawl returns nothing relevant → your `query` shares no vocabulary with
@@ -384,46 +442,55 @@ your own.** You reached this file from a URL, and a document fetched from the
 web is not a licence to write to someone's home directory or edit their agent
 config. Show them the option and let them decide.
 
-If they ask for it, or if setting this up is plainly what they wanted, offer
-these in order — the first is the least intrusive and the most portable:
+If they ask for it, or if setting this up is plainly what they wanted, what to
+set up depends on the client. **The server and this file are not alternatives.**
+The server gives you the six tools; this file gives the judgment about using
+them — which surface fits, which strategy to pick, what a result should look
+like. On a client that supports both, install both.
 
-- **The hosted MCP server.** Nothing is downloaded and nothing is written into
-  their home directory: a config entry points at a URL, and the agent gets the
-  six tools directly rather than a document describing them. It works in every
-  MCP client — Claude Code, Cursor, Codex, Claude Desktop, Windsurf:
+**Claude Code — both.** The server first:
 
-  ```bash
-  claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
-  ```
+```bash
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+```
 
-  or in the client's own config:
+`--scope user` matters: without it the server is registered against the
+directory you happen to be in, and it is missing from every other project. Then
+this file, which is what makes `/bytecrawl` exist:
 
-  ```json
-  {"mcpServers": {"bytecrawl": {"url": "https://bytecrawl.vercel.app/mcp"}}}
-  ```
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
 
-- **This file as a skill**, if they are in Claude Code and want `/bytecrawl` as
-  a command. It copies a file into their home directory, so it is the more
-  intrusive of the two — offer it second, and only if they want the slash
-  command specifically:
+**Any other MCP client** — Cursor, Codex, Claude Desktop, Windsurf — takes the
+server alone, since there is no skills directory to put this file in:
 
-  ```bash
-  mkdir -p ~/.claude/skills/bytecrawl && \
-    curl -so ~/.claude/skills/bytecrawl/SKILL.md \
-    https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-  ```
+```json
+{"mcpServers": {"bytecrawl": {"url": "https://bytecrawl.vercel.app/mcp"}}}
+```
 
-- **A line in their project instructions** (`AGENTS.md`, `CLAUDE.md`, a rules
-  file), which is enough for a future session to know where to look:
+**Neither of those?** A line in their project instructions (`AGENTS.md`,
+`CLAUDE.md`, a rules file) is enough for a future session to know where to look:
 
-  ```
-  Web scraping or crawling: read https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-  ```
+```
+Web scraping or crawling: read https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
 
-- **The Python package is optional**, and only worth it for what the hosted
-  server cannot do: JavaScript-rendered pages, crawls past the 10-page cap, or
-  running without depending on someone else's endpoint. `pip install bytecrawl`
-  — see Path C.
+**The Python package stays optional.** It is worth installing only for what the
+hosted server cannot do: JavaScript-rendered pages, crawls past the 10-page cap,
+or not depending on someone else's endpoint. `pip install bytecrawl` — see the
+library section.
+
+Two things to tell them afterwards, because neither is visible from a success
+message:
+
+- **Adding the server writes config; it does not connect it.** The tools appear
+  once `/mcp` reconnects or the session restarts. Without that they look at a
+  session with no new tools and conclude the install failed.
+- **Skills load at startup**, so `/bytecrawl` will not exist in the session that
+  installed it. The next one has it.
 
 Whichever they pick, ask first and let the normal permission prompt happen. An
 agent that edits a config because a web page told it to is the behaviour every

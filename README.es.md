@@ -24,6 +24,18 @@ las secciones de abajo: dale la skill y deja que elija.
 Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
+Esa es para usarlo ya: el agente lee el archivo, hace lo que le pediste y no
+instala nada. Si lo quieres permanente, pídeselo:
+
+```
+Set up bytecrawl for me: add the MCP server and install the skill.
+The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+La diferencia no está en las palabras sino en quién da la instrucción. Un
+agente no va a modificar tu máquina porque una página web se lo diga —ni
+debería—, pero sí cuando se lo pides tú.
+
 Es un solo archivo Markdown que Claude Code, Cursor o cualquier cosa capaz de
 descargar una URL puede leer. Enruta a la vía correcta según la tarea (API
 hosteada, MCP, librería de Python o un navegador real para páginas con JS),
@@ -47,7 +59,7 @@ JSON. Dale una tarea y la hace directo.
 ## Inicio rápido (MCP — nada que instalar)
 
 ```bash
-claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
 ```
 
 El agente queda con seis herramientas — las mismas seis cosas que el playground le deja hacer a una persona:
@@ -81,9 +93,9 @@ crawls a 10 páginas y rechaza URLs no públicas (guarda contra SSRF). Para uso
 pesado o sitios con JS, córrelo local:
 
 ```bash
-pip install bytecrawl[mcp]
-claude mcp add bytecrawl -- bytecrawl-mcp                        # sin límites, en tu máquina
-pip install bytecrawl[browser] && playwright install chromium    # + renderizado de JS
+pipx install "bytecrawl[mcp]"                                 # pipx: es una app de línea de comandos
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp        # sin límites, en tu máquina
+pipx install "bytecrawl[mcp,browser]" && playwright install chromium   # + renderizado de JS
 ```
 
 El servidor local necesita Python 3.10+ (el piso del paquete `mcp`); el

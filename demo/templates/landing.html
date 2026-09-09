@@ -701,7 +701,14 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
 
   // One line that works in any agent, not just the ones that speak MCP: the
   // skill file itself routes them to the API, MCP or the library.
-  const SETUP_CMD = 'Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md';
+  // "Read and follow <url>" asked the agent to read, so it read and then asked
+  // what to do — correct, and not what someone pressing "Setup for agents"
+  // wanted. The instruction to install has to come from the person, not from
+  // the page: a document that orders an agent to modify the machine is a prompt
+  // injection whoever wrote it, and agents refuse it. Pasted by the user, this
+  // is their own request, and the agent reads the doc for the how.
+  const SETUP_CMD = 'Set up bytecrawl for me: add the MCP server and install the skill. '
+    + 'The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md';
   const setupBtn = document.getElementById('setup-btn');
   const setupLabel = document.getElementById('setup-label');
   const tr = (k, fallback) => (window.t ? window.t(k) : null) || fallback;
