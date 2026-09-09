@@ -21,6 +21,9 @@ docs/examples/*.md
 .gstack/
 .claude/
 
+# Secrets
+.env
+
 # Generated output at root
 /pagina.md
 .vercel
