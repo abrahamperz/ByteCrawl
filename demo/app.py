@@ -21,6 +21,7 @@ BASE = Path(__file__).parent
 EXAMPLES = BASE.parent / "examples"
 
 sys.path.insert(0, str(BASE.parent))
+import bytecrawl
 from bytecrawl import Scraper
 from bytecrawl.crawler import STRATEGIES as CRAWL_STRATEGIES
 from bytecrawl.crawler import compare, pagerank
@@ -515,7 +516,9 @@ def api():
 
 @app.route("/docs")
 def docs():
-    return render_template("docs.html")
+    # Rendered, not written into the template: the pill said v1.0.0 through
+    # three releases because nothing connected it to the package.
+    return render_template("docs.html", version=bytecrawl.__version__)
 
 
 if __name__ == "__main__":

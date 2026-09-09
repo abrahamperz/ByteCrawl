@@ -50,6 +50,11 @@
   `AGENTS.md` adds one line pointing back; a sandbox with nothing to write to
   skips it silently. If a task came with the URL, the task comes first.
 
+- **`/docs` advertised v1.0.0 through three releases.** The version was written
+  into the template, so nothing tied it to the package and it simply stopped
+  being true. It renders from `bytecrawl.__version__` now, and a test fails if
+  a literal version reappears there.
+
 ### Changed
 - `fetch_markdown` returns `tokens_html` next to `tokens_estimate`, the pair the
   playground already showed. On its own the token count has nothing to compare
