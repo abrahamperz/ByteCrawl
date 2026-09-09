@@ -82,3 +82,24 @@ def test_serverless_requirements_stay_in_sync():
     # the hosted MCP server cannot start without these
     assert any(p.startswith("mcp") for p in api)
     assert "trafilatura" in api and "flask" in api
+
+
+def test_agent_skill_points_at_the_real_repo():
+    """SKILL.md is handed to agents as the entry point ("Read and follow <url>").
+
+    It shipped pointing at github.com/aperezdc-bytecrawl/bytecrawl, which 404s,
+    while the other twelve mentions across the project use the real URL. An
+    agent that wanted to read the source or file an issue hit a dead end, and
+    nothing here would have caught it.
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    canonical = re.search(r'Homepage = "(https://github\.com/[^"]+)"',
+                          (root / "pyproject.toml").read_text()).group(1)
+    skill = (root / "demo/static/SKILL.md").read_text()
+    found = set(re.findall(r"https://github\.com/[A-Za-z0-9._/-]+", skill))
+    wrong = {u for u in found if not u.startswith(canonical)}
+    assert not wrong, f"SKILL.md links a repo that isn't {canonical}: {wrong}"
+    assert found, "SKILL.md no longer points at the repo at all"
