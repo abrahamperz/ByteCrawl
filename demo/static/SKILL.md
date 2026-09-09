@@ -32,20 +32,26 @@ ordinary scraping and can share a line:
 
 > What do you want to do?
 >
-> **1. Find everything on a site about a topic** — I walk the site under a page budget and rank what I find by how well it matches
-> **2. Run all three crawlers and compare** — Shark-Search, OPIC and BFS over one site, the same number of pages each, side by side
+> **1. Find everything on a site about a query** — needs a site and a query. I walk it under a page budget and rank what I find by how well it matches
+> **2. Run all three crawlers and compare** — same site and query, three orderings side by side: Shark-Search, OPIC and BFS, the same number of pages each
 > **3. Turn a page into clean text** — headings and prose, no navigation or scripts, at a fraction of the tokens
-> **4. Pull specific fields off a page** — prices, titles, ratings, one row per item. You do not need to know the selectors; I read the page and work them out
+> **4. Pull specific fields off a page** — prices, titles, ratings, one row per item. Tell me what you want in words; I read the markup and work out the selectors (`p.price_color::text`, `h3 a::attr(title)`)
 > **5. Get every link on a page** — full URLs, no duplicates, no anchors or images
-> **6. Get the data behind a page** — many sites fill themselves from a JSON endpoint, and reading that directly is cleaner and cheaper than the HTML
+> **6. Get the data behind a page** — most listings render from a JSON endpoint the page fetches in the background. Reading that returns typed values straight off, no parsing and no selectors that break when the markup changes
 >
-> Send me a URL — and the topic too, if you picked 1 or 2.
+> Which one?
 
-Then:
+Once they pick, ask for what that one needs — not before. A menu and a request
+for input in the same breath is two questions at once, and the conditional
+("a query too, if you picked 1 or 2") only makes sense to someone who has
+already chosen.
 
-- **1 and 2 need a topic**, not optionally. Relevance is measured against it,
-  so without one there is nothing to rank and the crawl is just an expensive
-  BFS. Ask for it before starting.
+- **1 and 2 need a URL and a query.** `query` is the parameter's real name, and
+  it is not optional: relevance is measured against it, so without one there is
+  nothing to rank and the crawl is just an expensive BFS.
+- **3, 5 and 6 need a URL.** Nothing else.
+- **4 needs a URL** and a sentence about what they want off the page. Not a
+  selector — see below.
 - **4 does not need them to know a selector.** Call `extract` with only the
   url: it comes back with the page's repeated blocks, each with a runnable
   `item` + `fields` and a sample record. Show the samples, let them pick the
