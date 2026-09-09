@@ -187,6 +187,7 @@ The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</code></
       <pre><code>mkdir -p ~/.claude/skills/bytecrawl &amp;&amp; \
   curl -so ~/.claude/skills/bytecrawl/SKILL.md \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</code></pre>
+      <p class="muted" data-i18n-html="d_skill_update">Installing copies the file, so it is a snapshot — fixes published later never reach it. Run the same command again to update, or ask your agent to compare <code class="inline">shasum -a 256</code> of your copy against <code class="inline">/agent-onboarding/skill.json</code>.</p>
       <p class="muted" data-i18n="d_skill_slash_note">Same file this page serves, so there is nothing to keep in sync. Run it bare and it asks what you want; give it a task and it just does it.</p>
 
       <h2 id="mcp">MCP server</h2>

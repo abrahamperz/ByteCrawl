@@ -186,3 +186,36 @@ def test_every_version_in_the_repo_agrees():
         wrong["docs.html (hardcoded)"] = hardcoded.group(1)
 
     assert not wrong, f"version is {version}, but: {wrong}"
+
+
+def test_the_skill_can_tell_it_is_stale():
+    """Installing the skill copies it, so it is a snapshot and nothing pushes
+    fixes to it — a repo URL that 404s stayed on disk until it was fetched
+    again. /agent-onboarding/skill.json publishes the hash of the served file so
+    an agent can hash its own copy and find out. A hash, not a version string,
+    because nobody has to remember to bump it.
+    """
+    import hashlib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    body = (root / "demo/static/SKILL.md").read_bytes()
+
+    app_py = (root / "demo/app.py").read_text()
+    assert '"/agent-onboarding/skill.json"' in app_py, "the version endpoint is gone"
+
+    # the skill has to tell the agent how to use it, and to report rather than act
+    skill = body.decode()
+    flat = " ".join(skill.split())
+    assert "skill.json" in skill, "the skill never mentions how to check"
+    assert "shasum -a 256" in skill
+    assert "do not fetch it yourself" in flat, \
+        "an agent overwriting a file in someone's home because a hash differed " \
+        "is what the rest of this document tells it to refuse"
+
+    # and the endpoint must hash what is actually served
+    import demo.app as demo_app
+    with demo_app.app.test_client() as c:
+        out = c.get("/agent-onboarding/skill.json").get_json()
+    assert out["sha256"] == hashlib.sha256(body).hexdigest()
+    assert out["bytes"] == len(body)
