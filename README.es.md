@@ -40,6 +40,10 @@ mkdir -p ~/.claude/skills/bytecrawl && \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
+Córrela sin nada y te pregunta qué quieres — recorrer un sitio por tema, comparar
+las estrategias, leer una página, extraer campos, listar links o pegarle a una API
+JSON. Dale una tarea y la hace directo.
+
 ## Inicio rápido (MCP — nada que instalar)
 
 ```bash

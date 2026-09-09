@@ -42,6 +42,10 @@ mkdir -p ~/.claude/skills/bytecrawl && \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
+Run it bare and it asks what you want — crawl a site for a topic, compare the
+strategies, read a page, extract fields, list links, or pull a JSON API. Give it
+a task instead and it just does it.
+
 ## Quick start (MCP — nothing to install)
 
 Point any MCP-capable agent (Claude Code, Claude Desktop, Cursor...) at the

@@ -13,6 +13,28 @@ to your topic.
 
 Source: https://github.com/abrahamperz/ByteCrawl · PyPI: `bytecrawl` · MIT
 
+## If you were invoked with no task
+
+Ask before doing anything, and keep it to one short question. Do not read this
+file back at them and do not guess a URL. Offer what ByteCrawl actually does:
+
+> What do you want to do?
+>
+> 1. **Crawl a site for a topic** — I visit it under a page budget and rank what I find by relevance
+> 2. **Compare the strategies** — Shark-Search vs OPIC vs BFS on the same site and budget, side by side
+> 3. **Read a page** as clean Markdown
+> 4. **Extract fields** with a CSS selector
+> 5. **List a page's links**, absolute and deduplicated
+> 6. **Pull a JSON API**
+>
+> Send a URL — and a topic too, if you picked 1 or 2.
+
+For 1 and 2 the topic is required, not optional: relevance is measured against
+it, and without one there is nothing to rank. For 4, ask for the selector or
+offer to fetch the page and look at the markup first.
+
+If you were invoked *with* a task, skip all of this and do it.
+
 ## Install it once
 
 Fetching this file works for one turn. Installed as a skill it is there in
