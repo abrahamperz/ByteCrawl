@@ -6,7 +6,7 @@ description: Read any page as clean Markdown, extract with CSS selectors, list a
 # ByteCrawl
 
 ByteCrawl turns web pages into LLM-ready context. Three things it does that a
-plain fetch does not: it strips boilerplate down to clean Markdown (~6x fewer
+plain fetch does not: it strips boilerplate down to clean Markdown (around 6.5x fewer
 tokens), it extracts typed records with CSS selectors, and it crawls a site
 under a request budget while ranking what to visit next by how relevant it is
 to your topic.
