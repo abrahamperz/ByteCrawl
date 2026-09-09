@@ -176,3 +176,19 @@ def test_extract_with_only_a_url_discovers(http):
 def test_extract_rejects_item_without_fields(http):
     with pytest.raises(ValueError, match="go together"):
         mcp_server.extract("https://x.test/", item="article.card")
+
+
+def test_fetch_markdown_tool(http):
+    """The one tool with no offline test at all. The smoke suite only ever
+    called it to check the SSRF guard refused it, never that it worked."""
+    body = "".join(f"<article class='p'><h3>Book {i}</h3>"
+                   f"<p class='price'>£{i}.00</p></article>" for i in range(20))
+    http.routes["https://x.test/"] = FakeResponse(
+        text=f"<html><body><nav>Home Shop</nav>{body}</body></html>")
+    out = mcp_server.fetch_markdown("https://x.test/")
+    assert out["method"] == "static" and out["status"] == 200
+    # a listing is all repetition, which is what an article extractor discards;
+    # the titles have to survive or the tool returns a gutted page
+    assert "Book 0" in out["markdown"] and "Book 19" in out["markdown"]
+    # both counts, so a caller can state the saving rather than assume it
+    assert out["tokens_html"] > out["tokens_estimate"] > 0

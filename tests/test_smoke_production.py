@@ -25,6 +25,8 @@ import pytest
 pytestmark = pytest.mark.smoke
 
 BASE = "https://bytecrawl.vercel.app"
+BOOKS = "https://books.toscrape.com/"
+QUOTES_API = "https://quotes.toscrape.com/api/quotes?page=1"
 TIMEOUT = 60
 
 
@@ -108,6 +110,31 @@ class TestHostedMcp:
         names = {t["name"] for t in _rpc("tools/list")["result"]["tools"]}
         assert names == {"fetch_markdown", "extract", "list_links",
                          "focused_crawl", "compare_strategies", "fetch_json_api"}
+
+    @pytest.mark.parametrize("tool,args,expect", [
+        ("fetch_markdown", {"url": BOOKS}, {"markdown", "tokens_html"}),
+        ("extract", {"url": BOOKS}, {"candidates"}),
+        ("extract", {"url": BOOKS, "select": "h3 a::attr(title)"}, {"values"}),
+        ("list_links", {"url": BOOKS}, {"links"}),
+        ("fetch_json_api", {"url": QUOTES_API}, {"data"}),
+        ("focused_crawl", {"url": BOOKS, "query": "fiction", "max_pages": 3},
+         {"pages", "stats"}),
+        ("compare_strategies", {"url": BOOKS, "query": "fiction", "max_pages": 3},
+         {"strategies", "winner"}),
+    ])
+    def test_every_tool_actually_runs(self, tool, args, expect):
+        """Listing six tools is not the same as six tools working.
+
+        The offline suite mocks HTTP, and until now the only tool this suite
+        executed was fetch_markdown — to check the SSRF guard refused it, never
+        that it succeeded. fetch_markdown had no offline test at all, so nothing
+        anywhere proved it returned a page.
+        """
+        out = _rpc("tools/call", {"name": tool, "arguments": args})
+        assert "error" not in out, out
+        text = out["result"]["content"][0]["text"]
+        assert not text.startswith("Error"), text[:200]
+        assert expect <= set(json.loads(text))
 
     def test_ssrf_guard_is_live(self):
         """The one property that must never regress: a hosted scraper that
