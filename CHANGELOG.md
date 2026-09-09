@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.2 — 2026-09-09
+
+### Fixed
+- **The agent skill sent agents to a repo that 404s.** `SKILL.md` — the file
+  handed to an agent as the entry point — pointed at a GitHub URL that does not
+  exist, so anything that went looking for the source or an issue tracker hit a
+  dead end.
+- **It documented API response fields that no method returns.** The skill
+  promised `status` and `elapsed`; every response actually carries `url` and
+  `method`, which were undocumented, and `compare` was not documented at all.
+  The troubleshooting steps then told you to read `page.status` to diagnose a
+  failed call — so the first debugging move the skill taught did not work over
+  HTTP.
+
+### Added
+- A smoke suite against the deployed site (`pytest -m smoke`, excluded from CI
+  like the browser tests). Every bug in this release and the last was invisible
+  to the offline suite: they lived in the gap between what the project says and
+  what the deploy does. These check that the skill's links resolve, that the
+  API returns the fields it documents, that the hosted MCP server lists its six
+  tools, and that the SSRF guard is live.
+
 ## 1.1.1 — 2026-09-09
 
 ### Fixed

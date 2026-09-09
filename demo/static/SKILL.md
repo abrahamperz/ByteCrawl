@@ -16,7 +16,7 @@ tokens), it extracts typed records with CSS selectors, and it crawls a site
 under a request budget while ranking what to visit next by how relevant it is
 to your topic.
 
-Source: https://github.com/aperezdc-bytecrawl/bytecrawl · PyPI: `bytecrawl` · MIT
+Source: https://github.com/abrahamperz/ByteCrawl · PyPI: `bytecrawl` · MIT
 
 ## Choose your path
 
@@ -37,7 +37,20 @@ One GET. Everything except `url` is optional.
 curl "https://bytecrawl.vercel.app/api?url=books.toscrape.com"
 ```
 
-Returns JSON with `markdown`, `tokens`, `status`, `elapsed`.
+Every response carries `url` and `method` (`static`, `browser` or `api` — the
+strategy that actually ran), plus the payload for what you asked for:
+
+| method | you also get |
+|---|---|
+| markdown (default) | `markdown`, `tokens` |
+| text / html | `text` / `html` |
+| links | `links` |
+| json | `data` |
+| extract | `values`, `select` |
+| crawl | `pages`, `stats`, `query`, `strategy` |
+| compare | `strategies`, `winner`, `tied`, `query` |
+
+There is no `status` field: a fetch that fails comes back as `error` instead.
 
 | Goal | Call |
 |---|---|
@@ -266,8 +279,10 @@ Practice sites that allow scraping: `books.toscrape.com`, `quotes.toscrape.com`
 
 ## When something looks wrong
 
-1. Print `page.method` and `page.status` — most surprises are a 403 or a page
-   that needed the browser.
+1. Check which strategy ran before anything else — most surprises are a 403
+   or a page that needed the browser. On Path C that is `page.method` and
+   `page.status`; over the API it is the `method` field (the API does not
+   return a status, so a failed fetch comes back as an `error` instead).
 2. Empty Markdown with `method="static"` → the page is JS-rendered, go to Path D.
 3. `extract()` returns empty → the selector is wrong. Fetch `page.html` and
    check the real markup before changing anything else.
