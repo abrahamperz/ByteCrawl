@@ -1,5 +1,82 @@
 # Changelog
 
+## 1.1.0 — 2026-09-09
+
+**MCP: six tools instead of four.** Point any MCP-capable agent at ByteCrawl and
+it can now do everything the playground does. Nothing to install:
+
+```bash
+claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+```
+
+| Tool | What it does |
+|---|---|
+| `focused_crawl` | Crawl a site, rank pages by relevance to a query |
+| `compare_strategies` | **New.** All three strategies, one budget, side by side |
+| `fetch_markdown` | One page → clean Markdown |
+| `extract` | Structured records, or a flat list from one selector |
+| `list_links` | **New.** Every outbound link, absolute and deduplicated |
+| `fetch_json_api` | Hit a hidden JSON API |
+
+Local (`pip install bytecrawl[mcp]`, then `claude mcp add bytecrawl -- bytecrawl-mcp`)
+exposes the identical six, with no page cap and browser support.
+
+### Added
+- `compare(url, query)` — run Shark-Search, OPIC and BFS over one site on the
+  same budget and see which actually finds the topic. On Wikipedia + "san
+  francisco" that is 6 relevant pages out of 6 for Shark-Search against 1 of 6
+  for BFS. The three run concurrently, so it costs about as long as one crawl.
+  Returns a winner, or `tied` when nothing separates them.
+- `extract` accepts a single `select` selector for a flat list of values, as an
+  alternative to `item` + `fields`.
+- HTTP API: `/api?url=SITE&method=compare&query=TOPIC` for the same comparison
+  without any install.
+
+### Changed
+- **`Page.links()` now returns absolute, deduplicated URLs** and drops
+  `#fragments`, `mailto:` and asset files — the same normalisation the crawlers
+  already used. On a long Wikipedia article that is 2,222 raw hrefs down to
+  1,408 pages you can actually visit. Pass `raw=True` for the old output.
+- `normalize()` moved to `bytecrawl.core` (still importable from
+  `bytecrawl.crawler`), so links and crawling share one definition of a link.
+
+### Fixed
+- The demo site: a jumping footer, a webfont that resized the logo on first
+  paint, and the strategy comparison now looks the same on every page.
+
+## 1.0.0 — 2026-09-08
+
+First stable release. The public API (`Scraper`, `Page`, `Session`, the
+`BFS`/`SharkSearch`/`OPIC` crawlers and `pagerank`) is settled.
+
+### Added
+- **Hosted MCP server** at `https://bytecrawl.vercel.app/mcp` — point any
+  MCP-capable agent at it, nothing to install:
+  `claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp`.
+  Same four tools as the local server, hardened for the open internet:
+  - **SSRF guard**: resolves each URL and refuses private/loopback/link-local
+    addresses (blocks cloud metadata endpoints like `169.254.169.254`).
+  - **Hard caps**: `focused_crawl` is clamped to 10 pages per call.
+  - **Rate limit**: sliding-window per client IP (in-memory).
+  It is static-only (no Playwright on serverless); use the local server for
+  JS-rendered sites.
+- `bytecrawl-mcp-http` command to self-host the hosted server.
+- **Agent skill** at `https://bytecrawl.vercel.app/agent-onboarding/SKILL.md` —
+  a single Markdown file an agent can be pointed at
+  (`Read and follow <url>`). It routes to the right surface for the job
+  (hosted API, MCP, Python library, or a real browser for JS-rendered pages),
+  documents strategy selection and the Shark-Search `delta`/`gamma` knobs, and
+  states the etiquette and limits. Served with the correct Markdown MIME type.
+- `bytecraw.vercel.app` now 308-redirects to `bytecrawl.vercel.app`.
+
+### Documentation
+- `/docs` gains an **Agent skill** section, a **Focused crawlers** API reference
+  (the graph crawlers were previously undocumented on the site), and the hosted
+  MCP endpoint alongside the local one — all three in English, Spanish and
+  Portuguese.
+- `README.es.md` brought to parity with the English README.
+- Removed a stale pointer to a Scrapy playground method that no longer exists.
+
 ## 0.3.0 — 2026-09-08
 
 ### Changed
