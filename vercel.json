@@ -10,7 +10,7 @@
       }
     },
     {
-      "src": "api/mcp.py",
+      "src": "api/mcp_app.py",
       "use": "@vercel/python",
       "config": {
         "includeFiles": ["bytecrawl/**"],
@@ -25,7 +25,7 @@
       "status": 308,
       "headers": { "Location": "https://bytecrawl.vercel.app/$1" }
     },
-    { "src": "/mcp(.*)", "dest": "api/mcp.py" },
+    { "src": "/mcp(.*)", "dest": "api/mcp_app.py" },
     { "src": "/(.*)", "dest": "demo/app.py" }
   ]
 }
