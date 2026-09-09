@@ -6,7 +6,7 @@ description: Read any page as clean Markdown, extract with CSS selectors, list a
 # ByteCrawl
 
 ByteCrawl turns web pages into LLM-ready context. Three things it does that a
-plain fetch does not: it strips boilerplate down to clean Markdown (~6x fewer
+plain fetch does not: it strips boilerplate down to clean Markdown (around 6.5x fewer
 tokens), it extracts typed records with CSS selectors, and it crawls a site
 under a request budget while ranking what to visit next by how relevant it is
 to your topic.
@@ -109,6 +109,37 @@ picks the path below:
 Naming **bytecrawl** matters: most agents ship their own single-page fetcher
 and reach for it by default, which gets you one page read in isolation instead
 of a crawl ranked by your topic.
+
+## If you are running as an installed skill
+
+Installing copies this file to disk, so your copy is a snapshot of whatever was
+published the day it was taken. Nothing pushes fixes to it. If you are reading
+this from `~/.claude/skills/bytecrawl/SKILL.md` rather than from the URL, check
+once whether it is still current:
+
+```bash
+shasum -a 256 ~/.claude/skills/bytecrawl/SKILL.md
+curl -s https://bytecrawl.vercel.app/agent-onboarding/skill.json
+```
+
+Same `sha256` means you have the published file. Different means there is a
+newer one, and you should **say so in one line and give them the command** —
+do not fetch it yourself. Overwriting a file in someone's home directory
+because a document said a hash did not match is the behaviour this whole file
+tells you to refuse:
+
+```bash
+curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+**Check once, the first time you use this in a session** — one small request,
+and then not again. Waiting for a symptom does not work: the failure that
+prompted this was a link to a repository that 404s, which errored nothing and
+would have sat there indefinitely. A stale copy is wrong quietly, so something
+has to look on purpose.
+
+Mention it once and move on. If they do not update, do not raise it again.
 
 ## Choose your path
 

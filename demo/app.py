@@ -6,6 +6,7 @@ Run:  python app.py   ->  open http://127.0.0.1:5000
 """
 
 import atexit
+import hashlib
 import os
 import re
 import sys
@@ -115,6 +116,24 @@ TECHNIQUES = {
 @app.route("/")
 def landing():
     return render_template("landing.html")
+
+
+@app.route("/agent-onboarding/skill.json")
+def agent_skill_version():
+    """The hash of the file we are currently serving.
+
+    Installing the skill copies it to disk, so it is a snapshot: fixing
+    something here never reaches anyone who installed it earlier, and there is
+    no way to push to them. An agent can hash its own copy and compare against
+    this to find out it is stale — a hash rather than a version string because
+    nobody has to remember to bump it, so it cannot drift from the file.
+    """
+    body = (Path(app.static_folder) / "SKILL.md").read_bytes()
+    return jsonify({
+        "sha256": hashlib.sha256(body).hexdigest(),
+        "bytes": len(body),
+        "url": "https://bytecrawl.vercel.app/agent-onboarding/SKILL.md",
+    })
 
 
 @app.route("/agent-onboarding/SKILL.md")

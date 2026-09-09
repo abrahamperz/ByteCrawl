@@ -186,3 +186,45 @@ def test_every_version_in_the_repo_agrees():
         wrong["docs.html (hardcoded)"] = hardcoded.group(1)
 
     assert not wrong, f"version is {version}, but: {wrong}"
+
+
+def test_the_skill_can_tell_it_is_stale():
+    """Installing the skill copies it, so it is a snapshot and nothing pushes
+    fixes to it — a repo URL that 404s stayed on disk until it was fetched
+    again. /agent-onboarding/skill.json publishes the hash of the served file so
+    an agent can hash its own copy and find out. A hash, not a version string,
+    because nobody has to remember to bump it.
+    """
+    import hashlib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    body = (root / "demo/static/SKILL.md").read_bytes()
+    app_py = (root / "demo/app.py").read_text()
+    assert '"/agent-onboarding/skill.json"' in app_py, "the version endpoint is gone"
+
+    # the skill has to tell the agent how to use it, and to report rather than act
+    skill = body.decode()
+    flat = " ".join(skill.split())
+    assert "skill.json" in skill, "the skill never mentions how to check"
+    assert "shasum -a 256" in skill
+    assert "do not fetch it yourself" in flat, \
+        "an agent overwriting a file in someone's home because a hash differed " \
+        "is what the rest of this document tells it to refuse"
+    # and it has to look on its own, not wait for a symptom: the failure that
+    # prompted this was a link that 404s, which errors nothing
+    assert "Check once, the first time you use this in a session" in flat
+
+    # The endpoint must hash the file, not a copy of it. Asserted by reading the
+    # route rather than running it: importing demo.app drags in Flask, which the
+    # package does not depend on and CI does not install — the demo is a
+    # separate application that happens to live in this repository.
+    route = app_py[app_py.index('"/agent-onboarding/skill.json"'):]
+    route = route[:route.index("@app.route", 1)]
+    assert 'read_bytes()' in route and "hashlib.sha256" in route, \
+        "the endpoint must hash the file it serves, not a stored value"
+    assert "SKILL.md" in route
+
+    # a stored hash would be the drift this is meant to prevent
+    assert hashlib.sha256(body).hexdigest()[:8] not in app_py, \
+        "the current hash is hardcoded somewhere — it has to be computed"

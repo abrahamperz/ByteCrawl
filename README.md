@@ -1,9 +1,10 @@
 # ByteCrawl
 
-[![CI](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml/badge.svg)](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/bytecrawl)](https://pypi.org/project/bytecrawl/)
+[![MCP](https://img.shields.io/badge/MCP-6%20tools%2C%20hosted-0a0a0a)](https://bytecrawl.vercel.app/mcp)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/bytecrawl/)
+[![PyPI](https://img.shields.io/pypi/v/bytecrawl)](https://pypi.org/project/bytecrawl/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml/badge.svg)](https://github.com/abrahamperz/ByteCrawl/actions/workflows/ci.yml)
 
 *Léelo en [español](README.es.md).*
 
@@ -18,35 +19,94 @@ and OPIC in pure Python.
 - **Latest release**: **1.2.1** — six MCP tools, strategy comparison,
   absolute `Page.links()` ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 
-## Point an agent at it (no install, no key)
+## Why focused crawling?
 
-If you work through an AI agent, the fastest route is neither of the sections
-below — hand it the skill and let it choose:
+Most crawlers visit pages in whatever order they find them. Under a request
+budget, order is everything. From `en.wikipedia.org/wiki/Silicon_Valley` with
+query `san francisco`, 20 pages each:
 
+| Strategy | Pages over 0.1 relevance | Best page |
+|---|---|---|
+| `shark` | **20** | **0.7774** |
+| `opic` | 4 | 0.2799 |
+| `bfs` | 1 | 0.1068 |
+
+Same twenty requests; only the order changed. Reproduce it with
+`result.relevant(0.1)`.
+
+**That is a token argument as much as a quality one.** Those pages end up in a
+context window. BFS spends nineteen of its twenty on whatever happened to be
+linked first, and you pay for all nineteen. And each page arrives as Markdown
+rather than raw HTML — around **6.5× fewer tokens** for the same content.
+`fetch_markdown` reports both counts, so you can state the saving rather than
+assume it.
+
+**How it works.** Every link gets a score before it is visited. Shark-Search
+takes how much the anchor text and the parent page look like your query, decayed
+with depth so a branch that stops matching fades out on its own; OPIC scores by
+importance instead, cash flowing along links. The frontier is a priority queue,
+so the crawler always spends its next request on the best link it knows about —
+which is why the budget lands on relevant pages instead of nearby ones.
+
+```python
+from bytecrawl import SharkSearch
+
+result = SharkSearch(query="vector databases").crawl(url, max_pages=100)
+result.top(10)          # [{url, title, relevance, depth, order}, ...]
 ```
-Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+
+- **Shark-Search** (Hersovici et al., 1998) — topical best-first; links inherit
+  their parent's relevance with decay, so barren branches die out on their own.
+- **OPIC** (Abiteboul et al., 2003) — live PageRank via "cash" flowing along
+  links, no full graph needed. `pagerank()` is included to compare against.
+- **BFS** — level by level. The honest baseline.
+
+All three share one loop — pop, fetch, score links, push — so an equal page
+budget is a fair comparison, and every surface takes the same three names.
+
+Scrapy is a framework you wire up yourself and Firecrawl is a paid SaaS.
+ByteCrawl is a library with a three-package core and these strategies built in.
+
+## Quick start
+
+One command, nothing installed:
+
+```bash
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
 ```
 
-That one is for using it now — the agent reads the file, does what you asked,
-and installs nothing. To have it permanently instead, ask for that:
+Your agent now has six tools — the same six the playground gives a human:
 
+| Tool | What it does |
+|---|---|
+| `focused_crawl` | Crawl a site, rank pages by relevance to a query (Shark-Search / OPIC / BFS) |
+| `compare_strategies` | Run all three on the same budget and see which one wins |
+| `fetch_markdown` | One page → clean Markdown, around 6.5× fewer tokens than raw HTML |
+| `extract` | Structured records via CSS selectors — or call it with just a URL and it tells you what the page offers |
+| `list_links` | Every outbound link, absolute and deduplicated |
+| `fetch_json_api` | Hit a hidden JSON API |
+
+Then ask in plain language — you never call the tools yourself:
+
+> Use **bytecrawl** to find everything on python.org about the packaging ecosystem
+
+Say the name. Most agents ship their own single-page fetcher and reach for it by
+default; **bytecrawl** is what gets you a crawl ranked by your query instead of
+one page read in isolation.
+
+The hosted server is static-only, rate-limited, capped at 10 pages per crawl,
+and refuses non-public URLs. For JS-rendered pages or bigger crawls, run it
+yourself:
+
+```bash
+pipx install "bytecrawl[mcp]"                           # a CLI app, hence pipx
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp
 ```
-Set up bytecrawl for me: add the MCP server and install the skill.
-The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-```
 
-The difference is not the wording, it is who is giving the instruction. An agent
-will not modify your machine because a web page told it to — nor should it —
-but it will when you ask.
+## `/bytecrawl` — the agent skill
 
-One Markdown file, readable by Claude Code, Cursor, or anything that can fetch a
-URL. It routes to the right path for the job (hosted API, MCP, Python library,
-or a real browser for JS-rendered pages), documents how to select a crawl
-strategy, and includes measured numbers for what that choice buys you.
-[Read it yourself](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
-
-That line works for one turn. Install it once and `/bytecrawl` is there in every
-session, with the agent reaching for it on its own:
+The server gives your agent the tools; the skill gives it the judgment about
+using them, and you a slash command:
 
 ```bash
 mkdir -p ~/.claude/skills/bytecrawl && \
@@ -54,108 +114,18 @@ mkdir -p ~/.claude/skills/bytecrawl && \
   https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
 
-Run it bare and it asks what you want — crawl a site for a topic, compare the
-strategies, read a page, extract fields, list links, or pull a JSON API. Give it
-a task instead and it just does it.
+The same command updates it. Installing copies the file, so later fixes never
+reach your copy — the skill compares its hash against
+[`/agent-onboarding/skill.json`](https://bytecrawl.vercel.app/agent-onboarding/skill.json)
+once a session and tells you when yours is behind. It never overwrites anything
+on its own.
 
-## Quick start (MCP — nothing to install)
+No skills directory? Hand the file to any agent instead — it works for that
+conversation, installs nothing:
 
-Point any MCP-capable agent (Claude Code, Claude Desktop, Cursor...) at the
-hosted endpoint:
-
-```bash
-claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
 ```
-
-Now the agent has six tools — the same six things the playground lets a human do:
-
-| Tool | What it does |
-|---|---|
-| `focused_crawl` | Crawl a site, rank pages by relevance to a query (Shark-Search / OPIC / BFS) |
-| `compare_strategies` | Run all three over the same site on the same budget and see which one wins |
-| `fetch_markdown` | One page → clean Markdown (5–10× fewer tokens than raw HTML) |
-| `extract` | Structured records via CSS selectors — or call it with just a URL and it tells you what the page offers |
-| `list_links` | Every outbound link, absolute and deduplicated |
-| `fetch_json_api` | Hit a hidden JSON API |
-
-### Then just ask
-
-You don't call the tools yourself. Once the server is connected you ask in plain
-language and the agent picks one:
-
-> Use **bytecrawl** to find everything on python.org about the packaging ecosystem
-
-> Read https://example.com/pricing with **bytecrawl** and give me the plans as a table
-
-> Which crawl strategy does best on wikipedia.org for "san francisco"? Compare them
-
-Saying the name is worth the two syllables: most agents ship their own
-single-page fetcher and will reach for that by default. Naming **bytecrawl** is
-what gets you a focused crawl instead of one page read in isolation.
-
-The hosted server is static-only, rate-limited per IP, caps crawls at 10 pages,
-and refuses non-public URLs (SSRF guard). For heavy use or JS-rendered sites,
-run it locally:
-
-```bash
-pipx install "bytecrawl[mcp]"                              # pipx: it is a CLI app
-claude mcp add --scope user bytecrawl -- bytecrawl-mcp     # full power, on your machine
-pipx install "bytecrawl[mcp,browser]" && playwright install chromium   # + JS rendering
+Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
 ```
-
-## Why focused crawling?
-
-Most crawlers visit pages in whatever order they find them. With a limited
-request budget, order is everything — Shark-Search chases the branches that
-smell like your query and lets the rest decay, so 100 requests get you the 100
-*most useful* pages, not the 100 closest to the seed.
-
-```python
-from bytecrawl import SharkSearch
-
-result = SharkSearch(query="vector databases").crawl(
-    "https://example.com", max_pages=100)
-
-for page in result.top(10):
-    print(f'{page["relevance"]:.3f}  {page["url"]}')
-```
-
-- **BFS** — level by level, closest to the seed first.
-- **Shark-Search** (Hersovici et al., 1998) — topical best-first; links inherit
-  their parent's relevance with decay.
-- **OPIC** (Abiteboul et al., 2003) — live PageRank via "cash" flow, no full
-  graph needed (a `pagerank()` implementation is included to compare against).
-
-All three share one loop — pop, fetch, score links, push — so the same page
-budget across strategies is a fair comparison. Every surface takes the same
-three names, `shark` (default) / `opic` / `bfs`:
-
-| Surface | How |
-|---|---|
-| MCP | `focused_crawl(url, query, strategy="opic", max_pages=20)` |
-| HTTP API | `?url=SITE&method=crawl&query=TOPIC&strategy=opic` |
-| Python | instantiate the class: `OPIC(delay=0.5).crawl(url, max_pages=50)` |
-
-An unknown name is rejected rather than silently defaulted: the API returns 400,
-the MCP tool raises `ValueError`. `SharkSearch` requires `query` — without a
-topic it has nothing to rank. `BFS` and `OPIC` accept `query` too, but only to
-score the pages in the result; it does not change their traversal order.
-
-From `en.wikipedia.org/wiki/Silicon_Valley` with query `san francisco` and 20
-pages each, Shark returns 20 pages above 0.1 relevance against 4 for OPIC and 1
-for BFS, and its best page scores 0.7774 against BFS's 0.1068 — 7.3x on the same
-request budget. Reproduce it with `result.relevant(0.1)`. A lower threshold will
-not close the gap: 20 pages leaves thousands of URLs still queued, so coverage
-never converges the way it does on a site small enough to exhaust.
-
-Shark-Search exposes both parameters from the paper — `delta` (0.5) sets how
-fast a branch with no signal fades (decay is `δⁿ` with depth) and `gamma` (0.8)
-splits a link's score between its parent and its own anchor text,
-`score = γ·inherited + (1−γ)·local`.
-
-Versus the alternatives: Scrapy is a framework you wire up yourself, Firecrawl
-is a paid SaaS — ByteCrawl is a plain library with a 3-package core and these
-frontier strategies built in.
 
 ## Library API
 
