@@ -9,10 +9,13 @@
   install path, so one command now puts it in `~/.claude/skills/` and it is
   there in every session, with the agent reaching for it on its own. Same file
   the site serves — nothing to keep in sync.
-- Invoked bare, `/bytecrawl` now asks what you want — crawl a site for a topic,
-  compare the strategies, read a page, extract fields, list links, pull a JSON
-  API — instead of reading its own documentation back at you. Invoked with a
-  task, it skips the question and does it.
+- Invoked bare, `/bytecrawl` now asks what you want instead of reading its own
+  documentation back at you. The six options are named by what you get — "find
+  everything on a site about a topic", "get the data behind a page" — with the
+  technical name in parentheses for whoever wants it: someone who needs a JSON
+  endpoint does not recognise "hit a hidden JSON API", and someone who wants a
+  price off a listing does not know what a CSS selector is. It asks in whatever
+  language you wrote in. Invoked with a task, it skips the question and does it.
 - The skill now says **what to ask for**. It documented four surfaces and eight
   API methods without a single example of a request a person would make, so it
   told an agent how to call things and told a reader nothing.

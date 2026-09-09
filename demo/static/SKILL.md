@@ -16,22 +16,36 @@ Source: https://github.com/abrahamperz/ByteCrawl · PyPI: `bytecrawl` · MIT
 ## If you were invoked with no task
 
 Ask before doing anything, and keep it to one short question. Do not read this
-file back at them and do not guess a URL. Offer what ByteCrawl actually does:
+file back at them and do not guess a URL.
+
+**Ask in whatever language they wrote in.** The wording below is English
+because this file is; the question is not.
+
+Name each option by what the person gets, not by the mechanism. Someone who
+needs the JSON endpoint behind a page will not recognise "hit a hidden JSON
+API", and someone who needs a price out of a listing does not know what a CSS
+selector is. Keep the technical name in parentheses for whoever does:
 
 > What do you want to do?
 >
-> 1. **Crawl a site for a topic** — I visit it under a page budget and rank what I find by relevance
-> 2. **Compare the strategies** — Shark-Search vs OPIC vs BFS on the same site and budget, side by side
-> 3. **Read a page** as clean Markdown
-> 4. **Extract fields** with a CSS selector
-> 5. **List a page's links**, absolute and deduplicated
-> 6. **Pull a JSON API**
+> 1. **Find everything on a site about a topic** — I walk it under a page budget and rank what I find by how well it matches (focused crawl)
+> 2. **See which crawling strategy wins on a site** — the same budget spent three ways, side by side (Shark-Search vs OPIC vs BFS)
+> 3. **Turn a page into clean text** — headings and prose, none of the navigation and scripts, at a fraction of the tokens (Markdown)
+> 4. **Pull specific fields off a page** — prices, titles, ratings, one row per item
+> 5. **Get every link on a page** — full URLs, no duplicates, no anchors or images
+> 6. **Get the data behind a page** — many sites fill themselves from a JSON endpoint; reading that directly is cleaner and cheaper than parsing the HTML
 >
-> Send a URL — and a topic too, if you picked 1 or 2.
+> Send me a URL — and the topic too, if you picked 1 or 2.
 
-For 1 and 2 the topic is required, not optional: relevance is measured against
-it, and without one there is nothing to rank. For 4, ask for the selector or
-offer to fetch the page and look at the markup first.
+Then:
+
+- **1 and 2 need a topic**, not optionally. Relevance is measured against it,
+  so without one there is nothing to rank and the crawl is just an expensive
+  BFS. Ask for it before starting.
+- **4 does not need them to know a selector.** Ask what they want off the page
+  in their own words, fetch it, and find the selector yourself.
+- **6 usually needs finding first.** The endpoint is whatever the page calls in
+  the background; if they do not have the URL, offer to look for it.
 
 If you were invoked *with* a task, skip all of this and do it.
 
