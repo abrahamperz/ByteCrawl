@@ -15,7 +15,7 @@ and OPIC in pure Python.
 - **Webpage**: https://bytecrawl.vercel.app/
 - **Hosted MCP endpoint**: https://bytecrawl.vercel.app/mcp
 - **Agent skill**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Latest release**: **1.1.2** — six MCP tools, strategy comparison,
+- **Latest release**: **1.1.3** — six MCP tools, strategy comparison,
   absolute `Page.links()` ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 
 ## Point an agent at it (no install, no key)
@@ -32,6 +32,15 @@ URL. It routes to the right path for the job (hosted API, MCP, Python library,
 or a real browser for JS-rendered pages), documents how to select a crawl
 strategy, and includes measured numbers for what that choice buys you.
 [Read it yourself](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
+
+That line works for one turn. Install it once and `/bytecrawl` is there in every
+session, with the agent reaching for it on its own:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
 
 ## Quick start (MCP — nothing to install)
 

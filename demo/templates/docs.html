@@ -177,6 +177,13 @@
       <pre><code>Read and follow <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</a></code></pre>
       <p class="muted" data-i18n-html="d_skill_note">Paste that line into Claude Code, Cursor, or any agent — or <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">read the skill yourself</a>. No install and no key on any path. It also documents how to pick a crawl strategy and how to tune Shark-Search — see <a href="#crawlers" style="color:var(--accent);font-weight:600">Focused crawlers</a> below.</p>
 
+      <h3 data-i18n="d_skill_slash_t">Install it once — then <code class="inline">/bytecrawl</code></h3>
+      <p data-i18n="d_skill_slash_p">Pasting the line above works for one turn. Installed as a skill it is there in every session, and the agent reaches for it on its own:</p>
+      <pre><code>mkdir -p ~/.claude/skills/bytecrawl &amp;&amp; \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</code></pre>
+      <p class="muted" data-i18n="d_skill_slash_note">Same file this page serves, so there is nothing to keep in sync.</p>
+
       <h2 id="mcp">MCP server</h2>
       <p data-i18n="d_mcp_p">Expose ByteCrawl to any MCP-capable agent (Claude Code, Claude Desktop, Cursor). The agent gets six tools — the same six the playground offers: <code class="inline">focused_crawl</code>, <code class="inline">compare_strategies</code>, <code class="inline">fetch_markdown</code>, <code class="inline">extract</code>, <code class="inline">list_links</code> and <code class="inline">fetch_json_api</code>.</p>
       <h3 data-i18n="d_mcp_hosted_t">Hosted — nothing to install</h3>

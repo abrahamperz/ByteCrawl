@@ -1,11 +1,6 @@
 ---
 name: bytecrawl
-description: |
-  ByteCrawl gives agents clean Markdown from any page, typed extraction
-  with CSS selectors, and focused crawling that ranks pages by topic
-  (Shark-Search, OPIC, BFS) instead of walking a site blindly. Use this
-  skill to pick the path that matches the work: a hosted API with no
-  install, an MCP connection, or the Python library.
+description: Read any page as clean Markdown, extract with CSS selectors, list a page's links, hit hidden JSON APIs, or crawl a whole site ranked by topic with Shark-Search/OPIC/BFS. Use whenever a task needs web content, or needs a site searched by relevance rather than page by page.
 ---
 
 # ByteCrawl
@@ -17,6 +12,34 @@ under a request budget while ranking what to visit next by how relevant it is
 to your topic.
 
 Source: https://github.com/abrahamperz/ByteCrawl · PyPI: `bytecrawl` · MIT
+
+## Install it once
+
+Fetching this file works for one turn. Installed as a skill it is there in
+every session, and the agent reaches for it on its own:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Then `/bytecrawl` exists in Claude Code. Same file, nothing to keep in sync.
+
+## What to ask for
+
+You do not call any of this yourself — you say what you want and the agent
+picks the path below:
+
+> Use **bytecrawl** to find everything on python.org about the packaging ecosystem
+
+> Read https://example.com/pricing with **bytecrawl** and give me the plans as a table
+
+> Which crawl strategy does best on wikipedia.org for "san francisco"? Compare them
+
+Naming **bytecrawl** matters: most agents ship their own single-page fetcher
+and reach for it by default, which gets you one page read in isolation instead
+of a crawl ranked by your topic.
 
 ## Choose your path
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.3 — 2026-09-09
+
+### Added
+- **`/bytecrawl` as a slash command.** The agent skill was only ever usable by
+  pasting `Read and follow <url>`, which applies for one turn and is forgotten
+  by the next. It already had the frontmatter a Claude Code skill needs but no
+  install path, so one command now puts it in `~/.claude/skills/` and it is
+  there in every session, with the agent reaching for it on its own. Same file
+  the site serves — nothing to keep in sync.
+- The skill now says **what to ask for**. It documented four surfaces and eight
+  API methods without a single example of a request a person would make, so it
+  told an agent how to call things and told a reader nothing.
+
+### Changed
+- The skill's `description` is one line instead of five. That field is what an
+  agent reads to decide whether the skill applies, so it now says what it does
+  and when to use it rather than describing the product.
+
 ## 1.1.2 — 2026-09-09
 
 ### Fixed

@@ -10,7 +10,7 @@ Shark-Search y OPIC en Python puro.
 - **Web**: https://bytecrawl.vercel.app/
 - **Endpoint MCP hosteado**: https://bytecrawl.vercel.app/mcp
 - **Skill para agentes**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Última versión**: **1.1.2** — seis herramientas MCP, comparación de
+- **Última versión**: **1.1.3** — seis herramientas MCP, comparación de
   estrategias, `Page.links()` absolutos ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 - **PyPI**: https://pypi.org/project/bytecrawl/
 - **GitHub**: https://github.com/abrahamperz/ByteCrawl
@@ -30,6 +30,15 @@ hosteada, MCP, librería de Python o un navegador real para páginas con JS),
 documenta cómo elegir una estrategia de crawl e incluye números medidos de qué
 te da esa elección.
 [Léela tú mismo](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
+
+Esa línea sirve para un turno. Instálala una vez y `/bytecrawl` queda en todas
+las sesiones, y el agente la usa por su cuenta:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
 
 ## Inicio rápido (MCP — nada que instalar)
 
