@@ -1,4 +1,25 @@
 # Changelog
+## 1.2.1 — 2026-09-09
+
+Wording, and one change to how the agent skill behaves. Nothing in the library
+changed — `pip install bytecrawl` gets the same code as 1.2.0.
+
+### Changed
+- **The agent skill no longer instructs an agent to install it.** It opened by
+  telling whatever read it to write to `~/.claude/skills/`, add MCP servers and
+  edit `CLAUDE.md` "before anything else" — and agents refused, correctly. A
+  document fetched from a URL is not a licence to change someone's machine, and
+  one agent warned its user that the page was trying to trigger persistent
+  changes, which leaves the project looking like the attack rather than the
+  tool. Installing is now offered to the person, at the end, and only when they
+  ask for it.
+- `/bytecrawl` invoked bare lists all six options in full instead of folding
+  four of them onto one line. "clean text" is not something you can choose
+  without guessing what it does. The extraction option now also says you do not
+  need to know the selectors.
+- The tools section on the landing page is three columns instead of four: there
+  are six tools, and four columns left an orphan row of two.
+
 ## 1.2.0 — 2026-09-09
 
 **Extraction without having read the markup.** Call `extract` with only a URL

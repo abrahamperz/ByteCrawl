@@ -105,30 +105,37 @@ def test_agent_skill_points_at_the_real_repo():
     assert found, "SKILL.md no longer points at the repo at all"
 
 
-def test_skill_tells_the_agent_to_install_itself():
-    """The "Setup for agents" button copies `Read and follow <url>`, which
-    lasts one turn. The skill has to convert that into a real install or the
-    button promises setup and delivers a single answer."""
-    import re
+def test_the_skill_does_not_order_the_agent_around():
+    """A document fetched from a URL must not command an agent to modify the
+    machine it is running on.
+
+    An earlier version opened with "install yourself before anything else",
+    and agents refused it — correctly. One told its user the page was trying
+    to auto-trigger persistent changes to their config, which leaves the
+    project looking like the attack rather than the tool. The install is now
+    offered to the person, near the end, and only when they ask.
+    """
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
     skill = (root / "demo/static/SKILL.md").read_text()
+    sections = skill.split("## ")
+    head, opening = sections[0], sections[1]
+
+    # nothing about writing to the machine before the reader knows what this is
+    for probe in ("~/.claude/skills", "mcpServers", "mcp add"):
+        assert probe not in head + opening, \
+            f"{probe!r} appears before the skill has said what it does"
+
+    # the option still has to exist, and be framed as the person's choice
+    assert "~/.claude/skills/bytecrawl" in skill, "no way to install it at all"
+    flat = " ".join(skill.split())          # the prose is hard-wrapped
+    assert "do not change their configuration on your own" in flat
+    assert "ask first" in flat
+
+    # and the landing button still copies the line this file expects
     landing = (root / "demo/templates/landing.html").read_text()
-
-    # the button still copies the line the skill expects to arrive by
     assert "Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md" in landing
-
-    head = skill.split("## ")[1]          # the first section an agent reads
-    assert head.lower().startswith("first, make yourself persistent"), \
-        "persistence is no longer the first instruction"
-    # Claude Code is not the only client. A skills directory is its convention;
-    # elsewhere the durable path is the MCP server or a project instruction
-    # file, and an agent told only the first would write a file nobody reads.
-    assert re.search(r"curl -so ~/\.claude/skills/bytecrawl/SKILL\.md", head)
-    assert "mcpServers" in head or "mcp add" in head, "no path for MCP-only clients"
-    assert "AGENTS.md" in head, "no path for agents that keep a project file"
-    assert "silently" in head, "no path for a sandbox with nothing to write to"
 
 
 def _repo_version():
