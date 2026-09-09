@@ -387,7 +387,18 @@
     .setup { width: 100%; justify-content: center; padding: 14px 20px; white-space: nowrap; }
     .hbar { margin-bottom: 18px; border-radius: 14px; }
     .demo, .features, .eco { grid-template-columns: 1fr; }
-    .tools { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    /* minmax(0, …) rather than 1fr: a bare 1fr will not shrink below its
+       content's minimum, and that minimum is the `compare_strategies` chip —
+       18 characters of monospace that never break. Two of those plus card
+       padding needed 413px where an iPhone offers 346, so the grid pushed
+       past the screen instead of narrowing. The card gets tighter padding and
+       the chip a smaller face here, and it can break mid-token as a last
+       resort so no name can overflow its card again. */
+    .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .tool { padding: 14px; min-width: 0; }
+    .tool > code { font-size: 10.5px; padding: 4px 6px; margin-bottom: 9px;
+      max-width: 100%; overflow-wrap: anywhere; }
+    .tool p { font-size: 12.5px; line-height: 1.5; }
     .strats { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(2, 1fr); gap: 22px 14px; padding: 26px 0;
       margin-top: 26px; }

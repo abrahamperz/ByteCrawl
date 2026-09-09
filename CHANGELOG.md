@@ -1,144 +1,58 @@
 # Changelog
-
 ## 1.2.0 — 2026-09-09
 
-### Added
-- **`Page.selectors()` — extraction without having read the markup.** Writing an
-  `extract()` call means knowing the classes on the page, and an agent connected
-  over MCP could not: `fetch_markdown` strips exactly the classes and attributes
-  a selector is built from, and no tool returns HTML on purpose, since raw markup
-  costs more tokens than the data it is meant to locate. So this reports the
-  structure instead of the source — the blocks that repeat, the inner selectors
-  that resolve across most instances, and a sample record for each, which is a
-  runnable `item` + `fields` rather than something to interpret.
+**Extraction without having read the markup.** Call `extract` with only a URL
+and it tells you what the page offers: the blocks that repeat, a ready-to-run
+`item` + `fields` for each, and a sample record. Same on every surface — the
+MCP tool, `/api?method=extract` with no selector, and the playground's Extract
+chip left empty, which turns each block into a button that fills the field and
+runs it.
 
-  Two heuristics do the work. A repeated wrapper and the card inside it appear
-  equally often, so the one that offers nothing its own child does not is
-  dropped: `article.product_pod` survives, `li.col-xs-6.col-sm-4.col-md-3` does
-  not. And a column whose element contains another column's is thrown away,
-  because its text is every child's text run together — `div.product_price`
-  otherwise comes back as "£51.77In stockAdd to basket".
+```python
+page.selectors()[0]["fields"]
+{'price_color': 'p.price_color::text', 'thumbnail': 'img.thumbnail::attr(src)', ...}
+```
 
 ### Fixed
-- **`markdown()` was throwing the page away on listings.** Main-content
-  extraction is built to discard repetition — which on a listing page is the
-  content. On `books.toscrape.com`, the first URL the README tells you to curl,
-  it returned the price column and dropped all twenty book titles: 358
-  characters out of 1,851 of visible text. It now checks what came back against
-  the page's own text and falls back to full-page conversion when the
-  extractor kept under a quarter of it. Measured, that floor sits far below
-  every good case (1.14x of visible text on quotes.toscrape.com, 1.4-1.6x on
-  Wikipedia) and just above the one that broke (0.19x), so an article buried in
-  navigation still gets the boilerplate stripped.
-
-  With the content back, the saving is 4.8x on books.toscrape.com, 5.8x on
-  quotes and 6.6x on a Wikipedia article — the 5-10x the README claims. The
-  broken version scored 144x, which was not a saving.
-
-### Fixed
-- **"Setup for agents" set nothing up.** The button copies `Read and follow
-  <url>`, which makes an agent read the skill for exactly one turn — next
-  message it has none of it, and `/bytecrawl` never appears. The skill showed
-  the install command but never told the agent to run it, so the button promised
-  setup and delivered a single answer. Installing itself is now the first
-  instruction in the file — and it branches on what the agent is, because a
-  skills directory is Claude Code's convention and telling Codex or Cursor to
-  write `~/.claude/skills/` produces a file nobody reads. Claude Code installs
-  the file and gets `/bytecrawl`; an MCP client with no skills directory adds
-  the hosted server, which is the one path that persists everywhere and hands
-  over the tools rather than instructions about them; an agent with an
-  `AGENTS.md` adds one line pointing back; a sandbox with nothing to write to
-  skips it silently. If a task came with the URL, the task comes first.
-
-- **`/docs` advertised v1.0.0 through three releases.** The version was written
-  into the template, so nothing tied it to the package and it simply stopped
-  being true. It renders from `bytecrawl.__version__` now, and a test fails if
-  a literal version reappears there.
+- **Markdown was throwing away listing pages.** On `books.toscrape.com` — the
+  first URL the README tells you to curl — it returned the price column and
+  dropped all twenty book titles. Article extraction discards repetition, and on
+  a listing the repetition is the content. Affected every surface: the hosted
+  API, the playground and `fetch_markdown`. With the content back, the saving is
+  the 5-10x the README claims, not the 144x that meant most of the page was gone.
+- **"Setup for agents" set nothing up.** The button copies a line that makes an
+  agent read the skill for one turn; `/bytecrawl` never appeared. The skill now
+  installs itself, choosing the right way for the agent it is talking to — a
+  skills directory, the MCP server, or a project instruction file.
+- **`/docs` advertised v1.0.0** through three releases. It reads the real
+  version now.
 
 ### Changed
-- `fetch_markdown` returns `tokens_html` next to `tokens_estimate`, the pair the
-  playground already showed. On its own the token count has nothing to compare
-  against; beside the raw HTML it is the reason to have called the tool, and an
-  agent can state the saving instead of asserting it.
-- **`extract` called with only a url now discovers instead of failing.** It used
-  to raise "extract needs 'item' and 'fields', or 'select'" — refusing the one
-  question an agent can ask about a page it has not seen. The same call works on
-  every surface: the MCP tool, `/api?method=extract` without `select`, and the
-  playground's Extract chip with the field left empty, which lists the blocks it
-  found and turns each into a button that fills the selector and runs it.
-- The demo API no longer sorts JSON keys. The discovered fields come back ranked
-  with the most useful selector first and the playground offers that one as the
-  button; sorted alphabetically, `books.toscrape.com` led with `a::attr(href)`.
+- `fetch_markdown` reports `tokens_html` beside `tokens_estimate`, so you can
+  state the token saving instead of assuming it.
 
 ## 1.1.3 — 2026-09-09
 
 ### Added
-- **`/bytecrawl` as a slash command.** The agent skill was only ever usable by
-  pasting `Read and follow <url>`, which applies for one turn and is forgotten
-  by the next. It already had the frontmatter a Claude Code skill needs but no
-  install path, so one command now puts it in `~/.claude/skills/` and it is
-  there in every session, with the agent reaching for it on its own. Same file
-  the site serves — nothing to keep in sync.
-- Invoked bare, `/bytecrawl` now asks what you want instead of reading its own
-  documentation back at you. The six options are named by what you get — "find
-  everything on a site about a topic", "get the data behind a page" — with the
-  technical name in parentheses for whoever wants it: someone who needs a JSON
-  endpoint does not recognise "hit a hidden JSON API", and someone who wants a
-  price off a listing does not know what a CSS selector is. It asks in whatever
-  language you wrote in. Invoked with a task, it skips the question and does it.
-- The skill now tells the agent **how to run and present a crawl**, which it
-  never covered. A crawl is the one slow thing here — 8 seconds for 10 pages,
-  half a minute for 20 — and nothing streams progress, so it now states the
-  budget and the wait before starting. It defaults to 20 pages, reads
-  `stats.requests` to see whether the hosted cap clamped the request instead of
-  reporting the number it asked for, and shows the ranking as titles, URLs and
-  relevance plus one line of stats — including `frontier_left`, the URLs found
-  but never visited, which is what tells you a bigger budget would find more.
-  It also warns that relevance is cosine similarity, so short pages whose title
-  repeats the query score highest and Wikipedia category pages tend to top the
-  ranking.
-- The skill now says **what to ask for**. It documented four surfaces and eight
-  API methods without a single example of a request a person would make, so it
-  told an agent how to call things and told a reader nothing.
-
-### Changed
-- The skill's `description` is one line instead of five. That field is what an
-  agent reads to decide whether the skill applies, so it now says what it does
-  and when to use it rather than describing the product.
+- **`/bytecrawl` as a slash command.** One line installs the agent skill, and it
+  is there in every session instead of for one turn. Run it bare and it asks
+  what you want — crawl a site for a topic, compare the strategies, read a page,
+  pull fields, list links, get the JSON behind a page — in whatever language you
+  wrote in. Give it a task and it just does it.
 
 ## 1.1.2 — 2026-09-09
 
 ### Fixed
-- **The agent skill sent agents to a repo that 404s.** `SKILL.md` — the file
-  handed to an agent as the entry point — pointed at a GitHub URL that does not
-  exist, so anything that went looking for the source or an issue tracker hit a
-  dead end.
-- **It documented API response fields that no method returns.** The skill
-  promised `status` and `elapsed`; every response actually carries `url` and
-  `method`, which were undocumented, and `compare` was not documented at all.
-  The troubleshooting steps then told you to read `page.status` to diagnose a
-  failed call — so the first debugging move the skill taught did not work over
-  HTTP.
-
-### Added
-- A smoke suite against the deployed site (`pytest -m smoke`, excluded from CI
-  like the browser tests). Every bug in this release and the last was invisible
-  to the offline suite: they lived in the gap between what the project says and
-  what the deploy does. These check that the skill's links resolve, that the
-  API returns the fields it documents, that the hosted MCP server lists its six
-  tools, and that the SSRF guard is live.
+- The agent skill linked to a repository that 404s, and documented API response
+  fields that no method returns — including telling you to read a `status` field
+  the API has never sent, which was the first debugging step it taught.
 
 ## 1.1.1 — 2026-09-09
 
 ### Fixed
-- **The hosted MCP endpoint answered every request with `421 Invalid Host
-  header`.** The transport enables DNS-rebinding protection whenever the app is
-  built for its default `127.0.0.1` host, and then allows only localhost — so
-  nothing reaching `bytecrawl.vercel.app` got through. That protection is for a
-  server bound to your own machine; this one is public, unauthenticated and
-  already behind an SSRF guard, so it now ships open. Set
-  `BYTECRAWL_ALLOWED_HOSTS` (and `BYTECRAWL_ALLOWED_ORIGINS`) to turn it back on
-  if you self-host on a domain that also serves authenticated apps.
+- **The hosted MCP endpoint refused every request** with `421 Invalid Host
+  header`. It ships open now; set `BYTECRAWL_ALLOWED_HOSTS` to restrict it if
+  you self-host on a domain that also serves authenticated apps.
 
 ## 1.1.0 — 2026-09-09
 
