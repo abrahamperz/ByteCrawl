@@ -25,7 +25,7 @@ jobs:
       - name: Read package version
         id: v
         run: |
-          VERSION=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('bytecrawl/__init__.py').read()).group(1))")
+          VERSION=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('src/bytecrawl/__init__.py').read()).group(1))")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Skip if tag already exists
@@ -42,7 +42,7 @@ jobs:
         if: steps.tag.outputs.exists == 'false'
         run: |
           pip install -e ".[llm,dev]"
-          ruff check bytecrawl tests
+          ruff check src/bytecrawl tests
           pytest
 
       - name: Extract release notes from CHANGELOG

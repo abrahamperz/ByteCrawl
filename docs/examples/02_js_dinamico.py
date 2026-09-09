@@ -15,7 +15,7 @@ Before running (once):
   pip install playwright
   playwright install chromium
 
-Run:  python 02_dinamico_playwright.py
+Run:  python 02_js_dinamico.py
 """
 
 import json

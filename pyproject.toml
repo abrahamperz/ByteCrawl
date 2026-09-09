@@ -39,8 +39,8 @@ bytecrawl-mcp-http = "bytecrawl.mcp_http:main"
 Homepage = "https://github.com/abrahamperz/ByteCrawl"
 Repository = "https://github.com/abrahamperz/ByteCrawl"
 
-[tool.setuptools]
-packages = ["bytecrawl"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.dynamic]
 version = { attr = "bytecrawl.__version__" }
@@ -61,4 +61,4 @@ target-version = "py39"
 select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.vercel]
-entrypoint = "demo.app:app"
+entrypoint = "landing.app:app"

@@ -2,18 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "demo/app.py",
+      "src": "web/landing/app.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["demo/templates/**", "demo/static/**", "bytecrawl/**"],
+        "includeFiles": ["web/landing/templates/**", "web/landing/static/**", "src/bytecrawl/**"],
         "maxDuration": 60
       }
     },
     {
-      "src": "api/mcp_app.py",
+      "src": "web/mcp/mcp_app.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["bytecrawl/**"],
+        "includeFiles": ["src/bytecrawl/**"],
         "maxDuration": 60
       }
     }
@@ -25,7 +25,7 @@
       "status": 308,
       "headers": { "Location": "https://bytecrawl.vercel.app/$1" }
     },
-    { "src": "/mcp(.*)", "dest": "api/mcp_app.py" },
-    { "src": "/(.*)", "dest": "demo/app.py" }
+    { "src": "/mcp(.*)", "dest": "web/mcp/mcp_app.py" },
+    { "src": "/(.*)", "dest": "web/landing/app.py" }
   ]
 }

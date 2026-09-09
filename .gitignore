@@ -9,10 +9,10 @@ venv/
 build/
 dist/
 
-# Generated scraping outputs (from demo/examples)
-examples/*.csv
-examples/*.json
-examples/*.md
+# Generated scraping outputs (from the example scripts)
+docs/examples/*.csv
+docs/examples/*.json
+docs/examples/*.md
 
 # OS / editor
 .DS_Store
@@ -34,9 +34,9 @@ examples/*.md
 # Vercel installs (it prefers a pyproject/uv.lock over requirements.txt).
 /uv.lock
 /.python-version
-demo/pyproject.toml
-demo/uv.lock
-demo/.python-version
-api/pyproject.toml
-api/uv.lock
-api/.python-version
+web/landing/pyproject.toml
+web/landing/uv.lock
+web/landing/.python-version
+web/mcp/pyproject.toml
+web/mcp/uv.lock
+web/mcp/.python-version

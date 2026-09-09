@@ -15,7 +15,7 @@ How to find the API (do it in your browser):
 Practice site: quotes.toscrape.com has a hidden JSON endpoint its own
 frontend consumes:  https://quotes.toscrape.com/api/quotes?page=N
 
-Run:  python 03_api_red.py
+Run:  python 03_api_oculta.py
 """
 
 import json
@@ -55,7 +55,7 @@ def main():
     with open("frases_api.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print("Saved to frases_api.json")
-    print("\nNote: compare this script's SPEED vs 02_dinamico_playwright.py.")
+    print("\nNote: compare this script's SPEED vs 02_js_dinamico.py.")
     print("Same data, but no browser = far faster and more stable.")
 
 

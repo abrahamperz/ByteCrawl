@@ -33,7 +33,7 @@ def test_serverless_entrypoints_do_not_shadow_dependencies():
     """A file in api/ named after an installed package shadows it.
 
     Serverless runtimes put the entrypoint's own directory first on sys.path,
-    so api/mcp.py would make `from mcp.server...` resolve back to the
+    so web/mcp/mcp.py would make `from mcp.server...` resolve back to the
     entrypoint and die as a circular import — a failure that only shows up on
     deploy, never locally, because nothing imports through that path here.
     """
@@ -44,9 +44,9 @@ def test_serverless_entrypoints_do_not_shadow_dependencies():
     third_party = {"mcp", "flask", "requests", "bs4", "lxml", "uvicorn",
                    "starlette", "anyio", "pydantic", "posthog", "dotenv",
                    "markdownify", "trafilatura", "playwright", "bytecrawl"}
-    clashes = [p.name for p in (root / "api").glob("*.py")
+    clashes = [p.name for p in (root / "web/mcp").glob("*.py")
                if p.stem in third_party]
-    assert not clashes, f"api/ entrypoints shadow installed packages: {clashes}"
+    assert not clashes, f"web/mcp/ entrypoints shadow installed packages: {clashes}"
 
     # and every path vercel.json points at has to exist
     cfg = json.loads((root / "vercel.json").read_text())
@@ -59,7 +59,7 @@ def test_serverless_entrypoints_do_not_shadow_dependencies():
 def test_serverless_requirements_stay_in_sync():
     """Both Vercel builds share one venv, and each install prunes it.
 
-    @vercel/python gives demo/app.py and api/mcp_app.py a single virtualenv;
+    @vercel/python gives web/landing/app.py and web/mcp/mcp_app.py a single virtualenv;
     uv treats each requirements file as a sync, so whichever build runs second
     removes every package the other one needed and the first is packaged
     against a venv missing its dependencies. A deploy died on a missing
@@ -74,9 +74,9 @@ def test_serverless_requirements_stay_in_sync():
         return [ln.strip() for ln in (root / path).read_text().splitlines()
                 if ln.strip() and not ln.startswith("#")]
 
-    demo, api = pkgs("demo/requirements.txt"), pkgs("api/requirements.txt")
+    demo, api = pkgs("web/landing/requirements.txt"), pkgs("web/mcp/requirements.txt")
     assert demo == api, (
-        "demo/requirements.txt and api/requirements.txt must match — they "
+        "web/landing/requirements.txt and web/mcp/requirements.txt must match — they "
         f"install into the same venv.\n  demo only: {set(demo) - set(api)}\n"
         f"  api only:  {set(api) - set(demo)}")
     # the hosted MCP server cannot start without these
@@ -98,7 +98,7 @@ def test_agent_skill_points_at_the_real_repo():
     root = Path(__file__).resolve().parent.parent
     canonical = re.search(r'Homepage = "(https://github\.com/[^"]+)"',
                           (root / "pyproject.toml").read_text()).group(1)
-    skill = (root / "demo/static/SKILL.md").read_text()
+    skill = (root / "web/landing/static/SKILL.md").read_text()
     found = set(re.findall(r"https://github\.com/[A-Za-z0-9._/-]+", skill))
     wrong = {u for u in found if not u.startswith(canonical)}
     assert not wrong, f"SKILL.md links a repo that isn't {canonical}: {wrong}"
@@ -119,7 +119,7 @@ def test_the_skill_does_not_order_the_agent_around():
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
-    skill = (root / "demo/static/SKILL.md").read_text()
+    skill = (root / "web/landing/static/SKILL.md").read_text()
     sections = skill.split("## ")
     head, opening = sections[0], sections[1]
 
@@ -140,7 +140,7 @@ def test_the_skill_does_not_order_the_agent_around():
     # agents" wanted. Pasted by the user, a request to install is their own
     # instruction, which an agent can act on; the same words on this page would
     # be a prompt injection.
-    landing = (root / "demo/templates/landing.html").read_text()
+    landing = (root / "web/landing/templates/landing.html").read_text()
     setup = re.search(r"const SETUP_CMD = (.+?);\n", landing, re.S).group(1)
     assert "agent-onboarding/SKILL.md" in setup, "the button lost the URL"
     assert "MCP server" in setup and "skill" in setup, \
@@ -180,7 +180,7 @@ def test_every_version_in_the_repo_agrees():
             wrong[name] = m.group(1)
 
     # the docs page renders it now; a literal here means it can drift again
-    docs = (root / "demo/templates/docs.html").read_text()
+    docs = (root / "web/landing/templates/docs.html").read_text()
     hardcoded = re.search(r'<span class="pill">v(\d+\.\d+\.\d+)</span>', docs)
     if hardcoded:
         wrong["docs.html (hardcoded)"] = hardcoded.group(1)
@@ -199,8 +199,8 @@ def test_the_skill_can_tell_it_is_stale():
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
-    body = (root / "demo/static/SKILL.md").read_bytes()
-    app_py = (root / "demo/app.py").read_text()
+    body = (root / "web/landing/static/SKILL.md").read_bytes()
+    app_py = (root / "web/landing/routes.py").read_text()
     assert '"/agent-onboarding/skill.json"' in app_py, "the version endpoint is gone"
 
     # the skill has to tell the agent how to use it, and to report rather than act
@@ -216,11 +216,11 @@ def test_the_skill_can_tell_it_is_stale():
     assert "Check once, the first time you use this in a session" in flat
 
     # The endpoint must hash the file, not a copy of it. Asserted by reading the
-    # route rather than running it: importing demo.app drags in Flask, which the
-    # package does not depend on and CI does not install — the demo is a
-    # separate application that happens to live in this repository.
+    # route rather than running it: importing the landing app drags in Flask,
+    # which the package does not depend on and CI does not install — the landing
+    # site is a separate application that happens to live in this repository.
     route = app_py[app_py.index('"/agent-onboarding/skill.json"'):]
-    route = route[:route.index("@app.route", 1)]
+    route = route[:route.index("@pages_bp.route", 1)]
     assert 'read_bytes()' in route and "hashlib.sha256" in route, \
         "the endpoint must hash the file it serves, not a stored value"
     assert "SKILL.md" in route

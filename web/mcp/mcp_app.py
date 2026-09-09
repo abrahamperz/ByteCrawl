@@ -13,7 +13,7 @@ documented best-effort behavior on serverless.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 from bytecrawl.mcp_http import create_app  # noqa: E402
 

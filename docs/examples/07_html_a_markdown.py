@@ -16,7 +16,7 @@ Two tools:
                  (drops menus, banners, footers) -> even fewer tokens.
 
 Before running:  pip install requests markdownify trafilatura
-Run:             python extra_html_a_markdown.py
+Run:             python 07_html_a_markdown.py
 """
 
 import requests
