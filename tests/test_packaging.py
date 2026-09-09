@@ -115,6 +115,7 @@ def test_the_skill_does_not_order_the_agent_around():
     project looking like the attack rather than the tool. The install is now
     offered to the person, near the end, and only when they ask.
     """
+    import re
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
@@ -133,9 +134,17 @@ def test_the_skill_does_not_order_the_agent_around():
     assert "do not change their configuration on your own" in flat
     assert "ask first" in flat
 
-    # and the landing button still copies the line this file expects
+    # The button has to carry the instruction, because this file must not.
+    # "Read and follow <url>" only asked the agent to read, so it read and then
+    # asked what to do — correct, and not what someone pressing "Setup for
+    # agents" wanted. Pasted by the user, a request to install is their own
+    # instruction, which an agent can act on; the same words on this page would
+    # be a prompt injection.
     landing = (root / "demo/templates/landing.html").read_text()
-    assert "Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md" in landing
+    setup = re.search(r"const SETUP_CMD = (.+?);\n", landing, re.S).group(1)
+    assert "agent-onboarding/SKILL.md" in setup, "the button lost the URL"
+    assert "MCP server" in setup and "skill" in setup, \
+        "the button must ask for both — the server alone leaves /bytecrawl missing"
 
 
 def _repo_version():

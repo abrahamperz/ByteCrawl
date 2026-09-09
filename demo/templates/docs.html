@@ -177,6 +177,11 @@
       <pre><code>Read and follow <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</a></code></pre>
       <p class="muted" data-i18n-html="d_skill_note">Paste that line into Claude Code, Cursor, or any agent — or <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">read the skill yourself</a>. No install and no key on any path. It also documents how to pick a crawl strategy and how to tune Shark-Search — see <a href="#crawlers" style="color:var(--accent);font-weight:600">Focused crawlers</a> below.</p>
 
+      <p data-i18n="d_skill_two_t"><strong>That line is for using it now</strong> — the agent reads the file, does what you asked, and installs nothing. To have it permanently, ask for that instead:</p>
+      <pre><code>Set up bytecrawl for me: add the MCP server and install the skill.
+The steps are at https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</code></pre>
+      <p class="muted" data-i18n="d_skill_two_p">The difference is not the wording, it is who is giving the instruction. An agent will not modify your machine because a web page told it to — nor should it — but it will when you ask.</p>
+
       <h3 data-i18n="d_skill_slash_t">Install it once — then <code class="inline">/bytecrawl</code></h3>
       <p data-i18n="d_skill_slash_p">Pasting the line above works for one turn. Installed as a skill it is there in every session, and the agent reaches for it on its own:</p>
       <pre><code>mkdir -p ~/.claude/skills/bytecrawl &amp;&amp; \
@@ -187,15 +192,15 @@
       <h2 id="mcp">MCP server</h2>
       <p data-i18n="d_mcp_p">Expose ByteCrawl to any MCP-capable agent (Claude Code, Claude Desktop, Cursor). The agent gets six tools — the same six the playground offers: <code class="inline">focused_crawl</code>, <code class="inline">compare_strategies</code>, <code class="inline">fetch_markdown</code>, <code class="inline">extract</code>, <code class="inline">list_links</code> and <code class="inline">fetch_json_api</code>.</p>
       <h3 data-i18n="d_mcp_hosted_t">Hosted — nothing to install</h3>
-      <pre><code>claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp</code></pre>
+      <pre><code>claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp</code></pre>
       <p class="muted" data-i18n="d_mcp_hosted_p">Same six tools, no Python on your machine. Static HTML only, rate-limited per IP, crawls capped at 10 pages and strategy comparisons at 6 per strategy, and it refuses non-public URLs (SSRF guard). For heavy use or JS-rendered sites, run it locally.</p>
-      <h3 data-i18n="d_mcp_local_t">Local — no cap, and browser support</h3>
+      <h3 data-i18n="d_mcp_local_t">Local — only if you need JS pages or bigger crawls</h3>
       <pre><code><span class="c"># install and register with Claude Code</span>
-pip install bytecrawl[mcp]
-claude mcp add bytecrawl -- bytecrawl-mcp</code></pre>
+pipx install bytecrawl[mcp]
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp</code></pre>
       <p data-i18n="d_mcp_cfg">Or in any MCP client config:</p>
-      <pre><code>{<span class="s">"mcpServers"</span>: {<span class="s">"bytecrawl"</span>: {<span class="s">"command"</span>: <span class="s">"bytecrawl-mcp"</span>}}}</code></pre>
-      <p class="muted" data-i18n="d_mcp_local_p">The local server needs Python 3.10+ (the floor of the <code class="inline">mcp</code> package). The hosted one has no such requirement — it is just HTTP.</p>
+      <pre><code>{<span class="s">"mcpServers"</span>: {<span class="s">"bytecrawl"</span>: {<span class="s">"url"</span>: <span class="s">"https://bytecrawl.vercel.app/mcp"</span>}}}</code></pre>
+      <p class="muted" data-i18n="d_mcp_local_p">This one costs an install, so reach for it only when the hosted server cannot do the job. pipx rather than pip because it is a command-line app, and a system Python refuses a plain <code class="inline">pip install</code> with <code class="inline">externally-managed-environment</code>. Needs Python 3.10+; the hosted one does not, being just HTTP.</p>
 
       <h3 data-i18n="d_mcp_ask_t">Then just ask</h3>
       <p data-i18n="d_mcp_ask_p">You don't call the tools yourself. With the server connected you ask in plain language and the agent picks one:</p>

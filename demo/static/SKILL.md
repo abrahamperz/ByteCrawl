@@ -106,42 +106,90 @@ of a crawl ranked by your topic.
 
 ## Choose your path
 
-- **Your client speaks MCP** → the MCP server, below. Six tools, nothing to install
-- **You need page content right now and speak no MCP** → the hosted API
-- **You are writing Python application code** → the library
-- **The page is JavaScript-rendered and comes back empty** → a real browser
+Three ways in. The first two install nothing.
+
+- **MCP server** — six tools in your agent. Hosted, so nothing to install. On
+  Claude Code take this file as a skill as well; they do different jobs
+- **Hosted API** — one GET request, no client, no account
+- **`pip install bytecrawl`** — the Python library, for application code, for
+  JavaScript-rendered pages, and for crawls past the hosted 10-page cap
 
 No API key, no account, no sign-up on any path.
 
 ---
 
+## If they asked you to set this up
+
+Then they asked, and that is the whole difference — the instruction is theirs,
+not this page's. Do it, with the normal permission prompt for anything that
+writes. On Claude Code that is two things, and both are wanted:
+
+```bash
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+The server gives you the six tools; the file gives `/bytecrawl` and the judgment
+about using them. Neither is the other half's substitute. On a client with no
+skills directory, the server alone is the whole answer.
+
+Then tell them, in one line each, the two things no success message shows: the
+tools appear once `/mcp` reconnects, and `/bytecrawl` exists from the next
+session, since skills load at startup. Nothing else — they asked for setup, not
+for a tour.
+
 ## MCP server
 
-Hosted, nothing to install:
+**Use the hosted one. It installs nothing.** No Python, no package, no binary —
+a config entry pointing at a URL:
 
 ```bash
-claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+claude mcp add --scope user --transport http bytecrawl https://bytecrawl.vercel.app/mcp
 ```
 
-Adding the server writes config; it does not connect it. The tools appear after
-`/mcp` reconnects or the session restarts — say so, or they will look at a
-session without them and think the install failed.
-
-Local (stdio), if you want no request cap and browser support:
-
-```bash
-pip install "bytecrawl[mcp]"
-claude mcp add bytecrawl -- bytecrawl-mcp
-```
-
-Or in any MCP client config:
+Or in any MCP client's own config:
 
 ```json
-{"mcpServers": {"bytecrawl": {"command": "bytecrawl-mcp"}}}
+{"mcpServers": {"bytecrawl": {"url": "https://bytecrawl.vercel.app/mcp"}}}
 ```
 
-The local server needs Python 3.10+ (the `mcp` package floor). The hosted one
-has no such requirement — it is just HTTP.
+`--scope user` registers it for every project; without it the server is tied to
+whatever directory you happened to be in. Adding it writes config but does not
+connect it: the tools appear once `/mcp` reconnects or the session restarts.
+
+**On Claude Code, install this file as a skill too — the server alone is half
+of it.** The server gives you the six tools; this file gives the judgment about
+using them: which surface fits, which strategy to pick, what a result should
+look like, and `/bytecrawl` as a command. They are not alternatives:
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Skills load at startup, so `/bytecrawl` appears in the next session, not the one
+that installed it. Ask before writing the file — see the end of this document.
+
+**The local server is for two specific needs** and costs an install, so do not
+reach for it by default. Take it only if the work needs JavaScript-rendered
+pages, or crawls past the hosted 10-page cap:
+
+```bash
+pipx install "bytecrawl[mcp]"        # pip works too, in a virtualenv
+claude mcp add --scope user bytecrawl -- bytecrawl-mcp
+```
+
+pipx rather than pip because this is a command-line app, and because a
+system Python — Homebrew's on macOS, most Linux distributions — refuses a
+plain `pip install` with `error: externally-managed-environment`. pipx puts it
+in its own environment and on PATH, which is what a stdio MCP server needs.
+Inside a virtualenv, `pip install "bytecrawl[mcp]"` is fine. Python 3.10+
+either way, the floor of the `mcp` package; the hosted server has no such
+requirement because it is just HTTP.
 
 Both expose six tools:
 
@@ -214,7 +262,7 @@ Add what you actually need:
 | Extra | Command | Unlocks |
 |---|---|---|
 | Markdown | `pip install "bytecrawl[llm]"` | `page.markdown()`, `page.tokens()` |
-| Browser | `pip install "bytecrawl[browser]"` | `Scraper.browser()` — see JavaScript-rendered pages |
+| Browser | `pip install "bytecrawl[browser]"` | `Scraper.browser()` — see below |
 | MCP | `pip install "bytecrawl[mcp]"` | the local `bytecrawl-mcp` server (Python 3.10+) |
 | Everything | `pip install "bytecrawl[all]"` | all of the above |
 
@@ -252,7 +300,7 @@ result.stats            # requests, errors, elapsed
 
 ---
 
-## JavaScript-rendered pages (install the browser)
+### JavaScript-rendered pages
 
 `bot.fetch(url)` always tries static HTML first, and escalates to a real
 browser only when the page comes back with under 200 characters of text — the
