@@ -1,22 +1,20 @@
 """
-Web dashboard to visualize the scraping techniques.
-Runs each script on demand and shows the results in tables/charts.
+Web dashboard for ByteCrawl: landing, methods, playground, docs, plus the
+public /api endpoint and the /analyze and /crawl demos behind them.
 
 Run:  python app.py   ->  open http://127.0.0.1:5000
 """
 
 import atexit
-import csv
-import json
 import os
-import subprocess
+import re
 import sys
 import time
 import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, jsonify, redirect, render_template, request, session
 from posthog import Posthog
 
 BASE = Path(__file__).parent
@@ -24,7 +22,9 @@ EXAMPLES = BASE.parent / "examples"
 
 sys.path.insert(0, str(BASE.parent))
 from bytecrawl import Scraper
-from bytecrawl.crawler import BFS, OPIC, SharkSearch, pagerank
+from bytecrawl.crawler import STRATEGIES as CRAWL_STRATEGIES
+from bytecrawl.crawler import compare, pagerank
+from bytecrawl.security import assert_public_url
 
 load_dotenv()
 
@@ -57,74 +57,53 @@ def _flush_posthog(response):
     return response
 
 
-# Definition of each technique: the script it runs and the output file it generates.
+# Each scraping technique: what it does, where to practise it, and how to
+# call it through the public /api endpoint (None when the API cannot host it).
 TECHNIQUES = {
     "static": {
         "title": "1 · Static HTML",
         "subtitle": "requests + BeautifulSoup",
         "site": "books.toscrape.com",
-        "script": "01_estatico_bs4.py",
-        "output": "libros.csv",
+        "api": "?method=html",
         "description": "The server sends the full HTML. We fetch it and parse it with CSS selectors.",
     },
     "dynamic": {
         "title": "2 · Dynamic JS",
         "subtitle": "Playwright (real browser)",
         "site": "quotes.toscrape.com/js",
-        "script": "02_dinamico_playwright.py",
-        "output": "frases.json",
+        "api": None,   # needs a real browser; not available on serverless
         "description": "JS fills the page. We launch a real browser and read the rendered DOM.",
     },
     "api": {
         "title": "3 · Intercepted API",
         "subtitle": "requests → JSON",
         "site": "quotes.toscrape.com/api",
-        "script": "03_api_red.py",
-        "output": "frases_api.json",
+        "api": "?method=json",
         "description": "Behind the JS there's an API with clean JSON. We hit it and skip the HTML.",
     },
-    "scrapy": {
-        "title": "4 · Scrapy at scale",
-        "subtitle": "crawler with queue + concurrency",
+    "crawl": {
+        "title": "4 · Crawling at scale",
+        "subtitle": "pagination + graph crawlers",
         "site": "quotes.toscrape.com",
-        "script": "04_scrapy_spider.py",
-        "output": "frases_scrapy.json",
-        "description": "Industrial framework: handles URL queue, parallelism, retries and export.",
+        "description": "Hundreds of pages: walk a 'next' chain, or let BFS / Shark-Search / OPIC "
+                       "order a whole site under a request budget.",
+        "api": "?method=crawl&query=san+francisco",
     },
     "login": {
         "title": "5 · API with login",
         "subtitle": "session + CSRF token",
         "site": "quotes.toscrape.com/login",
-        "script": "05_api_con_login.py",
-        "output": None,  # prints to console only
+        "api": None,   # needs credentials; local library only
         "description": "Data behind a login. We reuse the session cookie/token on every request.",
     },
     "markdown": {
         "title": "Extra · HTML → Markdown",
         "subtitle": "token savings for LLMs",
         "site": "quotes.toscrape.com",
-        "script": "extra_html_a_markdown.py",
-        "output": "pagina.md",
+        "api": "?method=markdown",
         "description": "Turns noisy HTML into clean Markdown: same info, a fraction of the tokens.",
     },
 }
-
-
-def read_output(name: str):
-    """Reads the results file and returns it as a structure for the UI."""
-    if not name:
-        return None
-    path = EXAMPLES / name
-    if not path.exists():
-        return None
-    if name.endswith(".json"):
-        return json.loads(path.read_text(encoding="utf-8"))
-    if name.endswith(".csv"):
-        with path.open(encoding="utf-8") as f:
-            return list(csv.DictReader(f))
-    if name.endswith(".md"):
-        return path.read_text(encoding="utf-8")
-    return None
 
 
 @app.route("/")
@@ -132,14 +111,51 @@ def landing():
     return render_template("landing.html")
 
 
+@app.route("/agent-onboarding/SKILL.md")
+def agent_skill():
+    """Served as raw text/markdown so an agent handed the URL can just read it.
+
+    render_template would try to parse Jinja braces in the code samples, so
+    read the file straight off disk instead.
+
+    One wrinkle: Chrome downloads `text/markdown` rather than rendering it, so
+    a human clicking the link from /docs would get a file instead of the text.
+    Browsers announce `Accept: text/html,...`; agents and curl do not. Serve
+    them text/plain so the page just opens, and keep the correct Markdown type
+    for everyone else.
+    """
+    skill = Path(app.static_folder) / "SKILL.md"
+    from_browser = "text/html" in request.headers.get("Accept", "")
+    return app.response_class(
+        skill.read_text(encoding="utf-8"),
+        mimetype="text/plain" if from_browser else "text/markdown",
+        headers={
+            "Cache-Control": "public, max-age=300",
+            "Content-Disposition": "inline",
+            "Vary": "Accept",
+        },
+    )
+
+
 @app.route("/methods")
 def methods():
     return render_template("index.html", techniques=TECHNIQUES)
 
 
-@app.route("/try")
-def try_playground():
+@app.route("/playground")
+def playground():
     return render_template("try.html", techniques=TECHNIQUES)
+
+
+@app.route("/try")
+def try_redirect():
+    """The playground used to live at /try; links to it are already out there.
+
+    308 rather than 302 so the redirect is cached and the query string
+    (?url=… deep links from the landing page) survives.
+    """
+    qs = request.query_string.decode()
+    return redirect("/playground" + ("?" + qs if qs else ""), code=308)
 
 
 ANALYZE_I18N = {
@@ -296,9 +312,6 @@ def analyze():
     })
 
 
-CRAWL_STRATEGIES = {"bfs": BFS, "shark": SharkSearch, "opic": OPIC}
-
-
 @app.route("/crawl", methods=["POST"])
 def crawl():
     """Runs ONE crawl strategy (the frontend compares by calling 3 in parallel).
@@ -341,71 +354,162 @@ def crawl():
     })
 
 
+API_MAX_PAGES = 10  # hard cap for the public crawl endpoint
+# compare runs three crawls behind one request, so it gets a smaller
+# per-strategy budget: 3 x 6 = 18 fetches, about two crawls' worth.
+API_MAX_COMPARE_PAGES = 6
+
+
+# The landing runs a demo crawl on load, so the same handful of queries repeat
+# all day. Serving those from a short-lived cache keeps the page instant and
+# spares the practice sites a burst of identical crawls. Per-instance and
+# best-effort on serverless, which is all this needs to be.
+_API_CACHE: dict[str, tuple[float, dict]] = {}
+_API_CACHE_TTL = 600  # seconds
+_API_CACHE_MAX = 64
+
+
+def _cache_get(key: str):
+    hit = _API_CACHE.get(key)
+    if not hit:
+        return None
+    born, payload = hit
+    if time.time() - born > _API_CACHE_TTL:
+        _API_CACHE.pop(key, None)
+        return None
+    return payload
+
+
+def _cache_put(key: str, payload: dict):
+    if len(_API_CACHE) >= _API_CACHE_MAX:  # drop the oldest entry
+        _API_CACHE.pop(min(_API_CACHE, key=lambda k: _API_CACHE[k][0]), None)
+    _API_CACHE[key] = (time.time(), payload)
+
+
+def _ok(cache_key: str, payload: dict):
+    """Cache a successful result and return it. Errors are never cached."""
+    _cache_put(cache_key, payload)
+    return jsonify(payload)
+
+
+def _clean_url(raw: str) -> str:
+    """Tolerate URLs pasted out of prose: 'site.com · query: x' -> 'https://site.com'."""
+    url = re.split(r"[\s·|,]", raw.strip())[0]
+    url = re.sub(r"""[.,;:·)\]}'"]+$""", "", url)
+    if url and "://" not in url:
+        url = "https://" + url
+    return url
+
+
+@app.route("/api", methods=["GET", "POST"])
+def api():
+    """Dead-simple one-call HTTP API. Everything but `url` is optional.
+
+      /api?url=quotes.toscrape.com                          -> clean Markdown
+      /api?url=quotes.toscrape.com&method=text              -> plain text
+      /api?url=…&method=extract&select=h3 a::attr(title)    -> matched values
+      /api?url=…&method=json                                -> a JSON endpoint
+      /api?url=…&method=crawl&query=san+francisco&strategy=shark  -> focused crawl
+      /api?url=…&method=compare&query=san+francisco         -> all 3 strategies
+
+    method:   markdown (default) | text | html | extract | links | json |
+              crawl | compare
+    query:    topic to rank pages by (method=crawl / compare)
+    select:   a CSS selector to scrape (method=extract; ::text / ::attr(x))
+    strategy: shark (default) | opic | bfs   ·   pages: crawl budget (<=10)
+
+    Static-only and SSRF-guarded; crawls are capped at 10 pages, and compare
+    (three crawls in one call) at API_MAX_COMPARE_PAGES per strategy.
+    """
+    src = request.args if request.method == "GET" else (request.form or request.args)
+    url = _clean_url(src.get("url") or "")
+    if not url:
+        return jsonify({"error": "the 'url' parameter is required"}), 400
+    try:
+        assert_public_url(url)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    method = (src.get("method") or "markdown").lower()
+    cache_key = "|".join([url, method, src.get("query", ""), src.get("select", ""),
+                          src.get("strategy", ""), str(src.get("pages", ""))])
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    bot = Scraper(timeout=15)
+    try:
+        if method in ("markdown", "md"):
+            page = bot.static(url)
+            return _ok(cache_key, {"url": url, "method": "markdown",
+                            "markdown": page.markdown(),
+                            "tokens": page.tokens(page.markdown())})
+        if method == "text":
+            page = bot.static(url)
+            return _ok(cache_key, {"url": url, "method": "text",
+                            "text": page.soup.get_text(" ", strip=True)})
+        if method == "html":
+            page = bot.static(url)
+            return _ok(cache_key, {"url": url, "method": "html", "html": page.html})
+        if method == "links":
+            page = bot.static(url)
+            return _ok(cache_key, {"url": url, "method": "links", "links": page.links()})
+        if method == "json":
+            page = bot.api(url)
+            return _ok(cache_key, {"url": url, "method": "json", "data": page.json()})
+        if method == "extract":
+            select = (src.get("select") or "").strip()
+            if not select:
+                return jsonify({"error": "method=extract needs a 'select' CSS selector"}), 400
+            page = bot.static(url)
+            return _ok(cache_key, {"url": url, "method": "extract", "select": select,
+                            "values": page.css_all(select)})
+        if method in ("crawl", "shark", "opic", "bfs"):
+            strategy = method if method in CRAWL_STRATEGIES else \
+                (src.get("strategy") or "shark").lower()
+            if strategy not in CRAWL_STRATEGIES:
+                return jsonify({"error": f"unknown strategy '{strategy}'"}), 400
+            query = (src.get("query") or "").strip()
+            try:
+                pages = min(int(src.get("pages", API_MAX_PAGES)), API_MAX_PAGES)
+            except ValueError:
+                pages = API_MAX_PAGES
+            crawler = CRAWL_STRATEGIES[strategy](query=query, delay=0.0, timeout=8)
+            result = crawler.crawl(url, max_pages=pages, max_depth=4)
+            ranked = result.top(pages) if query else result.pages
+            return _ok(cache_key, {"url": url, "method": "crawl", "strategy": strategy,
+                            "query": query, "stats": result.stats, "pages": ranked})
+        if method == "compare":
+            query = (src.get("query") or "").strip()
+            if not query:
+                return jsonify({"error": "method=compare needs a 'query' — with "
+                                         "nothing to be relevant to the three "
+                                         "strategies aren't comparable"}), 400
+            try:
+                pages = min(int(src.get("pages", API_MAX_COMPARE_PAGES)),
+                            API_MAX_COMPARE_PAGES)
+            except ValueError:
+                pages = API_MAX_COMPARE_PAGES
+            # The playground fires three /crawl requests in parallel from the
+            # browser; a single API call has to do that fan-out itself or it
+            # would take three times as long as one crawl.
+            out = compare(url, query, max_pages=pages, delay=0.0, timeout=8)
+            return _ok(cache_key, {"url": url, "method": "compare", "query": query,
+                            "strategies": out["strategies"], "winner": out["winner"],
+                            "tied": out["tied"]})
+        return jsonify({"error": f"unknown method '{method}'"}), 400
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"request failed: {e}"}), 502
+
+
 @app.route("/docs")
 def docs():
     return render_template("docs.html")
 
 
-@app.route("/run/<key>", methods=["POST"])
-def run(key):
-    if key not in TECHNIQUES:
-        return jsonify({"ok": False, "error": "unknown technique"}), 404
-
-    t = TECHNIQUES[key]
-    t0 = time.perf_counter()
-    try:
-        proc = subprocess.run(
-            [sys.executable, t["script"]],
-            cwd=EXAMPLES,
-            capture_output=True,
-            text=True,
-            timeout=180,
-        )
-    except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "error": "the script took too long (timeout)"}), 504
-    seconds = round(time.perf_counter() - t0, 2)
-
-    data = read_output(t["output"])
-    posthog_client.capture(
-        _get_distinct_id(),
-        "scrape_technique_run",
-        properties={
-            "technique": key,
-            "technique_title": t["title"],
-            "success": proc.returncode == 0,
-            "duration_seconds": seconds,
-            "record_count": len(data) if isinstance(data, list) else None,
-        },
-    )
-    return jsonify(
-        {
-            "ok": proc.returncode == 0,
-            "stdout": proc.stdout[-4000:],
-            "stderr": proc.stderr[-2000:],
-            "output": t["output"],
-            "data": data,
-            "seconds": seconds,
-        }
-    )
-
-
-@app.route("/data/<key>")
-def data(key):
-    """Returns already-generated results without re-running the script."""
-    if key not in TECHNIQUES:
-        return jsonify({"ok": False}), 404
-    data = read_output(TECHNIQUES[key]["output"])
-    posthog_client.capture(
-        _get_distinct_id(),
-        "scrape_data_retrieved",
-        properties={
-            "technique": key,
-            "has_data": data is not None,
-            "record_count": len(data) if isinstance(data, list) else None,
-        },
-    )
-    return jsonify({"ok": True, "data": data})
-
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # 5000 is taken by AirPlay Receiver on macOS, so allow an override:
+    #   PORT=5055 python demo/app.py
+    app.run(debug=True, port=int(os.environ.get("PORT", 5000)))

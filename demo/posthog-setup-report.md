@@ -6,7 +6,7 @@ The wizard has completed a deep integration of PostHog into the ByteCrawl Flask 
 | Event | Description | File |
 |---|---|---|
 | `scrape_technique_run` | Fired when a user runs one of the six scraping technique demos from `/methods`. Properties: `technique`, `technique_title`, `success`, `duration_seconds`, `record_count`. | `app.py` |
-| `url_analyzed` | Fired when a user submits a URL to the auto-strategy analyzer on `/try`. Properties: `method_used`, `used_browser`, `chromium_missing`, `steps_count`, `has_markdown`, `token_reduction_ratio`. | `app.py` |
+| `url_analyzed` | Fired when a user submits a URL to the auto-strategy analyzer on `/playground`. Properties: `method_used`, `used_browser`, `chromium_missing`, `steps_count`, `has_markdown`, `token_reduction_ratio`. | `app.py` |
 | `scrape_data_retrieved` | Fired when a user views previously cached scraping results without re-running a script (`/data/<clave>`). Properties: `technique`, `has_data`, `record_count`. | `app.py` |
 
 ## Next steps

@@ -5,11 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ByteCrawl · Docs</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+<!-- The font used to come in through an @import at the top of the CSS. That request
+     can't start until the CSS is parsed, so every page rendered its first frame
+     in -apple-system and reflowed to Inter once the font landed — the logo
+     visibly changed size, and how long it lasted depended on which page you
+     opened and how warm the cache was. As <link> in the head it starts with
+     the document, identically on all four pages. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
   :root {
     --bg: #ffffff; --panel: #ffffff; --panel-2: #f7f7f8;
     --border: #e6e6e9; --border-2: #d4d4d8;
@@ -18,8 +26,21 @@
     --mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6; }
+  /* Reserve the scrollbar gutter whether or not the page scrolls, so a short
+     page and a long one have the same usable width and the centred .wrap —
+     nav logo, footer logo — doesn't shift sideways when you navigate. */
+  html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6;
+    /* Same footer anchoring as every other page: pinned to the bottom of the
+       viewport while the page is shorter than one screen, following the content
+       once it isn't. Pages differ in length, so without this the footer sits at
+       a different height on each one and its logo appears to jump as you move
+       between them. */
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column; }
+  footer { margin-top: auto; }
   a { color: inherit; text-decoration: none; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
@@ -32,10 +53,12 @@
   .gh-ico { display: block; }
   .navlinks a:hover { color: var(--text); }
   .navlinks a.active { color: var(--text); font-weight: 600; }
-  .lang-sw { display: inline-flex; gap: 2px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
-  .lang-btn { background: none; border: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); padding: 3px 7px; border-radius: 6px; cursor: pointer; }
+  .lang-sw { display: inline-flex; align-items: center; gap: 13px; }
+  .lang-btn { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 2px 0; cursor: pointer; transition: color .15s; }
   .lang-btn:hover { color: var(--text); }
-  .lang-btn.active { background: var(--text); color: #fff; }
+  .lang-sw::before { content: "|"; color: var(--border-2); font-size: 13px; }
+  .menu-btn { display: none; background: none; border: 0; cursor: pointer; color: var(--text);
+    padding: 6px; align-items: center; }
 
   .layout { display: grid; grid-template-columns: 220px 1fr; gap: 40px; padding: 40px 0 80px; }
   aside { position: sticky; top: 90px; align-self: start; font-size: 14px; }
@@ -48,8 +71,11 @@
   article h1 { font-size: 36px; font-weight: 800; letter-spacing: -1.2px; margin-bottom: 10px; }
   article .lead { color: var(--muted); font-size: 17px; margin-bottom: 30px; }
   article h2 { font-size: 24px; font-weight: 700; letter-spacing: -.6px; margin: 44px 0 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  /* nav is sticky (60px), so an anchor jump would land the heading under it */
+  [id] { scroll-margin-top: 78px; }
   article h3 { font-size: 16px; font-weight: 600; margin: 26px 0 8px; font-family: var(--mono); color: var(--text); }
   article p { color: var(--muted-2); margin-bottom: 12px; }
+  article p.muted { color: var(--muted); font-size: 13.5px; }
   article ul { color: var(--muted-2); margin: 0 0 14px 20px; }
   article li { margin-bottom: 5px; }
   code.inline { font-family: var(--mono); font-size: 13px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: #cf222e; }
@@ -60,13 +86,44 @@
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; }
   td code { font-family: var(--mono); font-size: 12.5px; color: #8250df; }
+  /* Example prompts are what you type at the agent, not code you run, so they
+     get the body face with a rule down the side rather than a <pre> block. */
+  .prompt { border-left: 2px solid var(--border-2); padding: 3px 0 3px 14px;
+    margin: 0 0 10px; color: var(--muted-2); }
+  .prompt strong { color: var(--text); font-weight: 600; }
   .pill { display: inline-block; font-size: 11px; font-family: var(--mono); color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; margin-bottom: 14px; }
-  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; text-align: center; }
+    .foot-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+    font-size: 17px; letter-spacing: -.4px; color: var(--text); }
+  .foot-mark { width: 22px; height: 22px; border-radius: 6px; display: block; }
+  .foot-meta { display: block; margin-top: 8px; }
+  /* Its own line-height rather than the body's: /docs sets 1.6 for prose and
+     the other pages 1.5, which made the docs footer ~3px taller. Anchored to
+     the bottom of the viewport, that extra height comes off the top and the
+     logo sits higher there than everywhere else. */
+  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
   @media (max-width: 820px) {
     .wrap { padding: 0 22px; }
-    nav .row { flex-wrap: wrap; height: auto; padding: 14px 18px; gap: 12px 18px; position: relative; }
-    .navlinks { width: 100%; margin-left: 0; gap: 18px; flex-wrap: wrap; font-size: 14px; }
-    .lang-sw { position: absolute; top: 16px; right: 18px; }
+    /* mobile nav: logo + hamburger; links live in a dropdown */
+    nav .row { height: 56px; position: relative; }
+    [id] { scroll-margin-top: 72px; }
+    .menu-btn { display: inline-flex; margin-left: auto; }
+    .navlinks { display: none; }
+    nav.open .navlinks {
+      display: flex; flex-direction: column; align-items: stretch;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 60;
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 2px 22px 16px; gap: 0; margin: 0;
+      box-shadow: 0 14px 28px rgba(0,0,0,.07);
+    }
+    nav.open .navlinks a {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 14px 2px; font-size: 16px; font-weight: 500; color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    nav.open .navlinks a:hover { color: var(--text); }
+    nav.open .gh-link::after { content: "GitHub"; }
+    nav.open .navlinks .lang-sw { margin-top: 14px; align-self: flex-start; }
+    nav.open .lang-sw::before { display: none; }
     .layout { grid-template-columns: 1fr; gap: 24px; padding: 24px 0 60px; }
     aside { position: static; }
     article h1 { font-size: 28px; }
@@ -80,9 +137,12 @@
   <div class="wrap row">
     <a class="logo" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo-mark">ByteCrawl</a>
     <div class="navlinks">
-      <a class="active" href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a href="/try" data-i18n="nav_try">Try</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a class="active" href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a href="/playground" data-i18n="nav_try">Playground</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
       <span class="lang-sw"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button><button class="lang-btn" data-lang="pt">PT</button></span>
     </div>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
+    </button>
   </div>
 </nav>
 
@@ -90,29 +150,83 @@
   <div class="layout">
     <aside>
       <div class="grp" data-i18n="d_grp_start">Getting started</div>
-      <a href="#install" data-i18n="d_install">Installation</a>
+      <a href="#skill" data-i18n="d_skill">Agent skill</a>
+      <a href="#mcp">MCP server</a>
+      <a href="#http-api">HTTP API</a>
+      <a href="#install" data-i18n="d_install">Install the library</a>
       <a href="#quickstart" data-i18n="d_quickstart">Quickstart</a>
       <div class="grp" data-i18n="d_grp_api">API reference</div>
       <a href="#scraper">Scraper</a>
       <a href="#page">Page</a>
       <a href="#session">Session</a>
+      <a href="#crawlers" data-i18n="d_crawlers">Focused crawlers</a>
       <div class="grp" data-i18n="d_grp_guides">Guides</div>
       <a href="#selectors" data-i18n="d_selectors">Selector syntax</a>
       <a href="#strategy" data-i18n="d_strategy">Choosing a strategy</a>
     </aside>
 
     <article>
-      <span class="pill">v0.1.0</span>
+      <span class="pill">v1.0.0</span>
       <h1 data-i18n="d_h1">ByteCrawl docs</h1>
-      <p class="lead" data-i18n="d_lead">A unified Python toolkit for scraping any website—static HTML, dynamic JS,
-        hidden APIs, authenticated sessions, and LLM-ready Markdown, all behind one API.</p>
+      <p class="lead" data-i18n="d_lead">Focused crawling for AI agents: point it at a site and get back the pages most
+        relevant to a topic (Shark-Search, OPIC), plus everyday scraping — static HTML, dynamic JS, hidden APIs, sessions and LLM-ready Markdown.</p>
+      <p class="muted" data-i18n-html="d_lead_path">Four ways in, listed below in order of how much you have to install. The first three — <a href="#skill" style="color:var(--accent);font-weight:600">agent skill</a>, <a href="#mcp" style="color:var(--accent);font-weight:600">MCP</a> and the <a href="#http-api" style="color:var(--accent);font-weight:600">HTTP API</a> — need nothing on your machine and no key. Install the Python library when you want no caps, JS rendering, or ByteCrawl in your own code.</p>
 
-      <h2 id="install" data-i18n="d_install">Installation</h2>
-      <pre><code><span class="c"># core</span>
+      <h2 id="skill" data-i18n="d_skill">Agent skill</h2>
+      <p data-i18n-html="d_skill_p">If you are an AI agent — or you are pointing one here — skip these docs and read the skill instead. It is a single Markdown file that picks the right path for the job (hosted API, MCP, Python library, or browser) and gives working calls for each.</p>
+      <pre><code>Read and follow <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">https://bytecrawl.vercel.app/agent-onboarding/SKILL.md</a></code></pre>
+      <p class="muted" data-i18n-html="d_skill_note">Paste that line into Claude Code, Cursor, or any agent — or <a href="/agent-onboarding/SKILL.md" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">read the skill yourself</a>. No install and no key on any path. It also documents how to pick a crawl strategy and how to tune Shark-Search — see <a href="#crawlers" style="color:var(--accent);font-weight:600">Focused crawlers</a> below.</p>
+
+      <h2 id="mcp">MCP server</h2>
+      <p data-i18n="d_mcp_p">Expose ByteCrawl to any MCP-capable agent (Claude Code, Claude Desktop, Cursor). The agent gets six tools — the same six the playground offers: <code class="inline">focused_crawl</code>, <code class="inline">compare_strategies</code>, <code class="inline">fetch_markdown</code>, <code class="inline">extract</code>, <code class="inline">list_links</code> and <code class="inline">fetch_json_api</code>.</p>
+      <h3 data-i18n="d_mcp_hosted_t">Hosted — nothing to install</h3>
+      <pre><code>claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp</code></pre>
+      <p class="muted" data-i18n="d_mcp_hosted_p">Same six tools, no Python on your machine. Static HTML only, rate-limited per IP, crawls capped at 10 pages and strategy comparisons at 6 per strategy, and it refuses non-public URLs (SSRF guard). For heavy use or JS-rendered sites, run it locally.</p>
+      <h3 data-i18n="d_mcp_local_t">Local — no cap, and browser support</h3>
+      <pre><code><span class="c"># install and register with Claude Code</span>
+pip install bytecrawl[mcp]
+claude mcp add bytecrawl -- bytecrawl-mcp</code></pre>
+      <p data-i18n="d_mcp_cfg">Or in any MCP client config:</p>
+      <pre><code>{<span class="s">"mcpServers"</span>: {<span class="s">"bytecrawl"</span>: {<span class="s">"command"</span>: <span class="s">"bytecrawl-mcp"</span>}}}</code></pre>
+      <p class="muted" data-i18n="d_mcp_local_p">The local server needs Python 3.10+ (the floor of the <code class="inline">mcp</code> package). The hosted one has no such requirement — it is just HTTP.</p>
+
+      <h3 data-i18n="d_mcp_ask_t">Then just ask</h3>
+      <p data-i18n="d_mcp_ask_p">You don't call the tools yourself. With the server connected you ask in plain language and the agent picks one:</p>
+      <p class="prompt" data-i18n-html="d_mcp_ask_1">Use <strong>bytecrawl</strong> to find everything on python.org about the packaging ecosystem</p>
+      <p class="prompt" data-i18n-html="d_mcp_ask_2">Read https://example.com/pricing with <strong>bytecrawl</strong> and give me the plans as a table</p>
+      <p class="prompt" data-i18n-html="d_mcp_ask_3">Which crawl strategy does best on wikipedia.org for "san francisco"? Compare them</p>
+      <p class="muted" data-i18n-html="d_mcp_ask_note">Saying the name is worth the two syllables: most agents ship their own single-page fetcher and will reach for that by default. Naming <strong>bytecrawl</strong> is what gets you a focused crawl instead of one page read in isolation.</p>
+
+      <h2 id="http-api">HTTP API</h2>
+      <p data-i18n="d_api_p">The simplest way to try ByteCrawl — one hosted endpoint. Everything but <code class="inline">url</code> is optional.</p>
+      <pre><code><span class="c"># a page → clean Markdown</span>
+curl <span class="s">"https://bytecrawl.vercel.app/api?url=quotes.toscrape.com"</span>
+
+<span class="c"># focused crawl by topic</span>
+curl <span class="s">"https://bytecrawl.vercel.app/api?url=en.wikipedia.org/wiki/Silicon_Valley&amp;method=crawl&amp;query=san+francisco"</span>
+
+<span class="c"># scrape a CSS selector</span>
+curl <span class="s">"https://bytecrawl.vercel.app/api?url=books.toscrape.com&amp;method=extract&amp;select=h3+a::attr(title)"</span></code></pre>
+      <table class="api">
+        <tr><th data-i18n="d_api_param">Param</th><th data-i18n="d_api_desc">Description</th></tr>
+        <tr><td><code>url</code></td><td data-i18n="d_api_url">Page or site to fetch (required).</td></tr>
+        <tr><td><code>method</code></td><td><code class="inline">markdown</code> (default) · <code class="inline">text</code> · <code class="inline">html</code> · <code class="inline">links</code> · <code class="inline">json</code> · <code class="inline">extract</code> · <code class="inline">crawl</code></td></tr>
+        <tr><td><code>query</code></td><td data-i18n="d_api_query">Topic to rank pages by (with <code class="inline">method=crawl</code>).</td></tr>
+        <tr><td><code>select</code></td><td data-i18n="d_api_select">A CSS selector to scrape (with <code class="inline">method=extract</code>).</td></tr>
+        <tr><td><code>strategy</code></td><td><code class="inline">shark</code> (default) · <code class="inline">opic</code> · <code class="inline">bfs</code></td></tr>
+      </table>
+      <p class="muted" data-i18n="d_api_note">Static-only and SSRF-guarded; crawls are capped at 10 pages. For JS rendering or heavier use, run the library or MCP server locally.</p>
+
+      <h2 id="install" data-i18n="d_install">Install the library</h2>
+      <p data-i18n-html="d_install_p">Everything above runs without installing anything. Install when you want no page caps, JS rendering, or ByteCrawl inside your own Python code.</p>
+      <pre><code><span class="c"># slim core (requests + beautifulsoup4 + lxml)</span>
 pip install bytecrawl
 
-<span class="c"># the browser strategy needs Chromium once</span>
-playwright install chromium</code></pre>
+<span class="c"># optional extras</span>
+pip install bytecrawl[llm]       <span class="c"># Markdown for LLMs</span>
+pip install bytecrawl[browser]   <span class="c"># Playwright (then: playwright install chromium)</span>
+pip install bytecrawl[mcp]       <span class="c"># local MCP server</span></code></pre>
+      <p class="muted" data-i18n="d_install_note">No extra fails silently: if one is missing, the ImportError names the exact command to run.</p>
 
       <h2 id="quickstart" data-i18n="d_quickstart">Quickstart</h2>
       <p data-i18n-html="d_quickstart_p">Create a <code class="inline">Scraper</code>, fetch a page, extract typed records.</p>
@@ -137,7 +251,7 @@ books = page.<span class="f">extract</span>(<span class="s">"article.product_pod
           <tr><td><code>.browser(url, wait, scroll)</code></td><td>Page</td><td>Strategy 2 · real Chromium for JS-rendered pages. <code class="inline">wait</code> = CSS selector to await.</td></tr>
           <tr><td><code>.api(url, params)</code></td><td>Page</td><td>Strategy 3 · GET a JSON API; result in <code class="inline">page.json()</code>.</td></tr>
           <tr><td><code>.fetch(url, strategy)</code></td><td>Page</td><td>Auto: tries static, falls back to browser if the page looks empty (JS).</td></tr>
-          <tr><td><code>.crawl(start, item, fields, next, pages)</code></td><td>list[dict]</td><td>Strategy 4 · follow the <code class="inline">next</code> link across pages, extract records.</td></tr>
+          <tr><td><code>.crawl(start, item, fields, next_page, pages)</code></td><td>list[dict]</td><td>Strategy 4 · follow the <code class="inline">next_page</code> link across pages, extract records.</td></tr>
           <tr><td><code>.session()</code></td><td>Session</td><td>Strategy 5 · an authenticated, cookie-persistent session.</td></tr>
         </tbody>
       </table>
@@ -146,7 +260,7 @@ books = page.<span class="f">extract</span>(<span class="s">"article.product_pod
     <span class="s">"https://quotes.toscrape.com/"</span>,
     item=<span class="s">"div.quote"</span>,
     fields={<span class="s">"frase"</span>: <span class="s">"span.text::text"</span>, <span class="s">"tags[]"</span>: <span class="s">"a.tag::text"</span>},
-    next=<span class="s">"li.next a::attr(href)"</span>,
+    next_page=<span class="s">"li.next a::attr(href)"</span>,
     pages=<span class="n">3</span>,
 )</code></pre>
 
@@ -158,7 +272,7 @@ books = page.<span class="f">extract</span>(<span class="s">"article.product_pod
           <tr><td><code>.css(sel)</code></td><td>str | None</td><td>First match of a selector.</td></tr>
           <tr><td><code>.css_all(sel)</code></td><td>list[str]</td><td>All matches.</td></tr>
           <tr><td><code>.extract(item, fields)</code></td><td>list[dict]</td><td>A list of records. <code class="inline">fields</code> maps name → selector.</td></tr>
-          <tr><td><code>.links()</code></td><td>list[str]</td><td>Every <code class="inline">href</code> on the page.</td></tr>
+          <tr><td><code>.links(raw=False)</code></td><td>list[str]</td><td>Every link as an absolute URL, deduplicated, without <code class="inline">#fragments</code>, <code class="inline">mailto:</code> or asset files. <code class="inline">raw=True</code> returns the untouched <code class="inline">href</code> values.</td></tr>
           <tr><td><code>.json()</code></td><td>Any</td><td>The parsed JSON (when fetched via <code class="inline">.api()</code>).</td></tr>
           <tr><td><code>.markdown(main_only=True)</code></td><td>str</td><td>Clean Markdown for LLMs. <code class="inline">main_only</code> keeps just the main content.</td></tr>
           <tr><td><code>.tokens(of=None)</code></td><td>int</td><td>Rough token estimate (~4 chars/token).</td></tr>
@@ -186,6 +300,28 @@ md = page.<span class="f">markdown</span>()
 )
 home = s.<span class="f">fetch</span>(<span class="s">"https://quotes.toscrape.com"</span>)</code></pre>
 
+      <h2 id="crawlers" data-i18n="d_crawlers">Focused crawlers</h2>
+      <p data-i18n-html="d_crawlers_p">Three strategies share one loop — pop a URL, fetch it, score its links, push them back — so the same page budget across strategies is a fair comparison. They differ only in how the frontier is ordered.</p>
+      <table>
+        <thead><tr><th>Class</th><th data-i18n="d_cr_orders">Orders the frontier by</th><th data-i18n="d_cr_use">Use when</th></tr></thead>
+        <tbody>
+          <tr><td><code>SharkSearch(query, ...)</code></td><td data-i18n="d_cr_shark">Topic similarity, inherited by child links with decay.</td><td data-i18n="d_cr_shark_u">You know the topic. Best default.</td></tr>
+          <tr><td><code>OPIC(query="", ...)</code></td><td data-i18n="d_cr_opic">Importance — "cash" flowing along links.</td><td data-i18n="d_cr_opic_u">You want the hubs, with no topic in mind.</td></tr>
+          <tr><td><code>BFS(query="", ...)</code></td><td data-i18n="d_cr_bfs">Distance from the seed.</td><td data-i18n="d_cr_bfs_u">You want even coverage, or a baseline.</td></tr>
+        </tbody>
+      </table>
+      <pre><code><span class="c">from</span> bytecrawl <span class="c">import</span> BFS, OPIC, SharkSearch, pagerank
+
+r = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco"</span>, delay=0.5).<span class="f">crawl</span>(url, max_pages=20)
+r.<span class="f">top</span>(10)             <span class="c"># highest-relevance pages</span>
+r.<span class="f">relevant</span>(0.1)       <span class="c"># everything above a threshold</span>
+r.stats               <span class="c"># requests, errors, elapsed</span>
+<span class="f">pagerank</span>(r.graph)     <span class="c"># offline importance, to compare against OPIC</span></code></pre>
+      <p data-i18n-html="d_cr_pick"><b>Picking one.</b> Every surface takes the same three names — <code class="inline">shark</code> (default), <code class="inline">opic</code>, <code class="inline">bfs</code>. On the HTTP API: <code class="inline">&amp;method=crawl&amp;query=TOPIC&amp;strategy=opic</code>. On MCP: <code class="inline">focused_crawl(url, query, strategy="opic")</code>. In Python, instantiate the class. An unknown name is rejected, not silently defaulted — the API returns 400 and the MCP tool raises <code class="inline">ValueError</code>.</p>
+      <p data-i18n-html="d_cr_query"><code class="inline">SharkSearch</code> requires <code class="inline">query</code>: without a topic it has nothing to rank. <code class="inline">BFS</code> and <code class="inline">OPIC</code> accept it too, but only to score the pages in the result — it does not change their traversal order.</p>
+      <p data-i18n-html="d_cr_measure"><b>What the choice buys you.</b> From en.wikipedia.org/wiki/Silicon_Valley, query <code class="inline">san francisco</code>, 20 pages each: Shark returns 20 pages above 0.1 relevance against 4 for OPIC and 1 for BFS, and its best page scores 0.7774 against BFS's 0.1068 — 7.3x. Reproduce it with <code class="inline">result.relevant(0.1)</code>. A lower threshold will not close the gap: 20 pages leaves thousands of URLs still queued, so coverage never converges the way it does on a small site.</p>
+      <p data-i18n-html="d_cr_tune"><b>Tuning Shark-Search.</b> Two parameters from the paper, both exposed: <code class="inline">delta</code> (0.5) is how fast a branch with no signal fades — the decay is <code class="inline">δⁿ</code> with depth, so lower abandons dead branches sooner. <code class="inline">gamma</code> (0.8) is how much a link's score comes from its parent versus its own anchor text: <code class="inline">score = γ·inherited + (1−γ)·local</code>. Lower it when anchor text on the target site is descriptive.</p>
+
       <h2 id="selectors" data-i18n="d_selectors">Selector syntax</h2>
       <p data-i18n="d_selectors_p">Selectors are plain CSS plus two pseudo-suffixes, and a list marker on field names.</p>
       <table>
@@ -203,7 +339,8 @@ home = s.<span class="f">fetch</span>(<span class="s">"https://quotes.toscrape.c
         <li data-i18n-html="d_li_api"><b>API?</b> Check DevTools → Network for a JSON endpoint. Cleanest and fastest → <code class="inline">.api()</code></li>
         <li data-i18n-html="d_li_static"><b>Static HTML?</b> If "View source" already shows the data → <code class="inline">.static()</code></li>
         <li data-i18n-html="d_li_js"><b>JS-only?</b> Empty source but data on screen → <code class="inline">.browser()</code></li>
-        <li data-i18n-html="d_li_many"><b>Many pages?</b> → <code class="inline">.crawl()</code> (or the Scrapy method in the playground)</li>
+        <li data-i18n-html="d_li_many"><b>Many pages, known pagination?</b> → <code class="inline">.crawl()</code> with <code class="inline">next_page=</code></li>
+        <li data-i18n-html="d_li_topic"><b>A whole site, ranked by topic?</b> → <a href="#crawlers" style="color:var(--accent);font-weight:600">a focused crawler</a></li>
         <li data-i18n-html="d_li_login"><b>Behind login?</b> → <code class="inline">.session().login()</code></li>
       </ul>
       <p data-i18n-html="d_try_live">Try it live in the <a href="/methods" style="color:var(--accent);font-weight:600">Methods playground</a>.</p>
@@ -211,7 +348,8 @@ home = s.<span class="f">fetch</span>(<span class="s">"https://quotes.toscrape.c
   </div>
 </div>
 
-<footer><div class="wrap">ByteCrawl — universal scraping layer · MIT</div></footer>
+<footer><div class="wrap"><a class="foot-brand" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="foot-mark">ByteCrawl</a>
+    <span class="foot-meta">Crawling for AI agents · MIT</span></div></footer>
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
@@ -228,6 +366,19 @@ home = s.<span class="f">fetch</span>(<span class="s">"https://quotes.toscrape.c
     });
   }, { rootMargin: "-10% 0px -80% 0px" });
   document.querySelectorAll('article [id]').forEach(el => obs.observe(el));
+</script>
+<script>
+  // mobile nav toggle
+  (function () {
+    const btn = document.querySelector('.menu-btn');
+    if (!btn) return;
+    const nav = btn.closest('nav');
+    btn.addEventListener('click', () => {
+      btn.setAttribute('aria-expanded', nav.classList.toggle('open'));
+    });
+    nav.querySelectorAll('.navlinks a').forEach(a =>
+      a.addEventListener('click', () => nav.classList.remove('open')));
+  })();
 </script>
 </body>
 </html>

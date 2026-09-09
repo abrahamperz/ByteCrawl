@@ -3,13 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ByteCrawl · Methods playground</title>
+<title>ByteCrawl · Interactive playground</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+<!-- The font used to come in through an @import at the top of the CSS. That request
+     can't start until the CSS is parsed, so every page rendered its first frame
+     in -apple-system and reflowed to Inter once the font landed — the logo
+     visibly changed size, and how long it lasted depended on which page you
+     opened and how warm the cache was. As <link> in the head it starts with
+     the document, identically on all four pages. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
   :root {
     --bg: #ffffff;
     --panel: #ffffff;
@@ -26,11 +34,27 @@
     --mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  /* Reserve the scrollbar gutter whether or not the page scrolls, so a short
+     page and a long one have the same usable width and the centred .wrap —
+     nav logo, footer logo — doesn't shift sideways when you navigate. */
+  html { scroll-behavior: smooth; scrollbar-gutter: stable; }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5;
+    /* Switching modes adds or removes the second input row, so the card
+       changes height — and a footer that only hangs off the content would
+       slide up and down with it. Pin it to the bottom of the viewport while
+       the page is shorter than one screen; once results render the page
+       outgrows the viewport and the footer goes back to following content.
+       dvh so the mobile URL bar doesn't count against the height. Every other
+       page carries the same pair, so the footer lands in the same place on all
+       four and doesn't jump as you move between them. */
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
+  footer { margin-top: auto; }
   a { color: inherit; text-decoration: none; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
@@ -45,10 +69,12 @@
   .gh-ico { display: block; }
   .navlinks a:hover { color: var(--text); }
   .navlinks a.active { color: var(--text); font-weight: 600; }
-  .lang-sw { display: inline-flex; gap: 2px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
-  .lang-btn { background: none; border: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); padding: 3px 7px; border-radius: 6px; cursor: pointer; }
+  .lang-sw { display: inline-flex; align-items: center; gap: 13px; }
+  .lang-btn { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 2px 0; cursor: pointer; transition: color .15s; }
   .lang-btn:hover { color: var(--text); }
-  .lang-btn.active { background: var(--text); color: #fff; }
+  .lang-sw::before { content: "|"; color: var(--border-2); font-size: 13px; }
+  .menu-btn { display: none; background: none; border: 0; cursor: pointer; color: var(--text);
+    padding: 6px; align-items: center; }
 
   /* HEADER */
   header.head { text-align: center; padding: 70px 0 40px; position: relative; overflow: hidden; }
@@ -71,11 +97,17 @@
   .btn { background: var(--text); color: #fff; border: none; border-radius: 9px; padding: 10px 16px; font-weight: 600; font-size: 14px; cursor: pointer; align-self: flex-start; transition: .15s; font-family: inherit; }
   .btn:hover { background: #27272a; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .status { font-size: 14px; margin: 12px 0 0; min-height: 18px; display: flex; align-items: center; }
+  /* gap, not a literal space: flex makes each text run its own item and eats
+     the whitespace between them, which is why the ✓ sat flush against the label.
+     The heights here are deliberately integers: with line-height 1.5 the chip's
+     content box was 19.5px, so centring it in the flex row put its text on a
+     half-pixel and the digits rendered blurry. 20px row, 18px chip line, even
+     padding — everything lands on whole pixels. */
+  .status { font-size: 14px; line-height: 20px; margin: 12px 0 0; min-height: 26px; display: flex; align-items: center; gap: 6px; }
   .status.run { color: var(--muted); }
   .status.ok { color: var(--accent); font-weight: 600; }
   .status.err { color: var(--red); }
-  .time { margin-left: 8px; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px; font-family: var(--mono); }
+  .time { margin-left: 2px; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .result { margin-top: 14px; display: none; }
   .result.show { display: block; }
   .count { font-size: 14px; color: var(--muted-2); font-weight: 600; font-family: inherit; }
@@ -98,6 +130,55 @@
   .analyzer { border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 10px 0 24px; background: var(--panel); }
   .azr-title { font-size: 20px; margin-bottom: 4px; }
   .azr-sub { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .azr-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .azr-mode { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted);
+    background: none; border: 1px solid transparent; border-radius: 9px; padding: 7px 13px;
+    cursor: pointer; transition: .15s; }
+  .azr-mode:hover { color: var(--text); }
+  .azr-mode.active { background: var(--panel); border-color: var(--border); color: var(--text);
+    font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+  /* The hint sits inside the field rather than beside it, so this row ends at
+     the same right edge as the Run button above instead of stopping short. */
+  .azr-extra { display: none; position: relative; margin-top: 10px; }
+  .azr-extra.show { display: block; }
+  .azr-extra .azr-input { width: 100%; }
+  /* minmax(0,…) not 1fr: a long percent-encoded URL in one card would otherwise
+     push its column wide and squeeze the other two. */
+  .cmp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+  .cmp-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--panel); }
+  .cmp-win { border-color: var(--text); }
+  /* A card that hasn't landed yet holds its column at roughly the height it
+     will end up at, so the grid doesn't jump as each run arrives. */
+  .cmp-idle { opacity: .6; min-height: 96px; }
+  .cmp-fail { color: var(--red); }
+  .cmp-head { font-size: 14px; margin-bottom: 6px; }
+  .cmp-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    background: var(--text); color: #fff; border-radius: 5px; padding: 2px 6px; margin-left: 4px; }
+  .cmp-nums { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted);
+    font-family: var(--mono); margin-bottom: 10px; }
+  /* Ranked URL tables only — Extract and Links share .tablewrap but are
+     single-column, so they must keep the default auto layout.
+     max-width:0 is the standard trick that makes ellipsis work in a fixed
+     table: it lets the cell shrink to its column share, not to its content. */
+  /* Both inherit the 12px `table` base — the size Extract and Links already
+     use. Don't set font-size here: `inherit` would pull from the body instead
+     of the base rule and the two tables would drift apart again. */
+  .cmp-card table, table.rank { table-layout: fixed; width: 100%; }
+  .cmp-card td:first-child, table.rank td:first-child {
+    max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cmp-card td:last-child { width: 46px; }
+  /* `a { color: inherit; text-decoration: none }` above makes a link
+     indistinguishable from plain text, so the rows gave no hint they were
+     clickable. Underline on hover is the affordance; the cell keeps the
+     ellipsis because the truncation lives on the td, not the anchor. */
+  .pm-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+  table.rank td:last-child { width: 68px; }
+  @media (max-width: 820px) { .cmp-grid { grid-template-columns: 1fr; } }
+  /* pointer-events:none so clicking the hint still focuses the field under it.
+     The input gets padding-right from JS, sized to the hint actually rendered,
+     because the three languages give it three different widths. */
+  .azr-extra-hint { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; color: var(--muted); white-space: nowrap; pointer-events: none; }
   .azr-bar { display: flex; gap: 10px; }
   .azr-input { flex: 1; border: 1px solid var(--border-2); border-radius: 9px; padding: 10px 14px; font-size: 14px; font-family: var(--mono); color: var(--text); outline: none; }
   .azr-input:focus { border-color: var(--text); }
@@ -105,7 +186,9 @@
   .azr-hint.show { display: flex; }
   .azr-hint .arrow { font-size: 15px; line-height: 1; animation: hint-bounce 1.2s ease-in-out infinite; }
   @keyframes hint-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  /* 14px + 2px border either side = an 18px box, even like the rest of the
+     status row — a 13px one centred to a half-pixel and wobbled as it spun. */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .azr-out { margin-top: 18px; display: none; }
   .azr-out.show { display: block; }
@@ -120,19 +203,48 @@
   .azr-meta .badge-deep:hover { border-color: var(--text); }
   .azr-why { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-top: 14px; background: var(--panel); font-size: 14px; color: var(--muted-2); line-height: 1.55; }
   .azr-why b { display: block; margin-bottom: 4px; color: var(--accent); }
-  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; text-align: center; }
+    .foot-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+    font-size: 17px; letter-spacing: -.4px; color: var(--text); }
+  .foot-mark { width: 22px; height: 22px; border-radius: 6px; display: block; }
+  .foot-meta { display: block; margin-top: 8px; }
+  /* Its own line-height rather than the body's: /docs sets 1.6 for prose and
+     the other pages 1.5, which made the docs footer ~3px taller. Anchored to
+     the bottom of the viewport, that extra height comes off the top and the
+     logo sits higher there than everywhere else. */
+  footer { border-top: 1px solid var(--border); padding: 30px 0; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
 
   @media (max-width: 820px) {
     .wrap { padding: 0 22px; }
-    nav .row { flex-wrap: wrap; height: auto; padding: 14px 18px; gap: 12px 18px; position: relative; }
-    .navlinks { width: 100%; margin-left: 0; gap: 18px; flex-wrap: wrap; font-size: 14px; }
-    .lang-sw { position: absolute; top: 16px; right: 18px; }
+    /* mobile nav: logo + hamburger; links live in a dropdown */
+    nav .row { height: 56px; position: relative; }
+    .menu-btn { display: inline-flex; margin-left: auto; }
+    .navlinks { display: none; }
+    nav.open .navlinks {
+      display: flex; flex-direction: column; align-items: stretch;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 60;
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 2px 22px 16px; gap: 0; margin: 0;
+      box-shadow: 0 14px 28px rgba(0,0,0,.07);
+    }
+    nav.open .navlinks a {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 14px 2px; font-size: 16px; font-weight: 500; color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    nav.open .navlinks a:hover { color: var(--text); }
+    nav.open .gh-link::after { content: "GitHub"; }
+    nav.open .navlinks .lang-sw { margin-top: 14px; align-self: flex-start; }
+    nav.open .lang-sw::before { display: none; }
     header.head { padding: 44px 0 28px; }
     h1 { font-size: 32px; }
     .grid { grid-template-columns: 1fr; }
     .analyzer { padding: 18px 14px; }
     .azr-bar { flex-direction: column; }
     .azr-bar .btn { align-self: stretch; text-align: center; }
+    /* On a narrow field the in-field hint would eat most of the typing room,
+       so it drops back below. pmFitHint() reads the computed position and
+       skips the padding when it does. */
+    .azr-extra-hint { position: static; transform: none; display: block; margin-top: 6px; }
     .azr-meta .badge { font-size: 12px; }
     .count-row { flex-wrap: wrap; }
     pre { font-size: 12px; }
@@ -145,9 +257,12 @@
   <div class="wrap row">
     <a class="logo" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo-mark">ByteCrawl</a>
     <div class="navlinks">
-      <a href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a class="active" href="/try" data-i18n="nav_try">Try</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a href="/docs" data-i18n="nav_docs">Docs</a><a href="/methods" data-i18n="nav_methods">Methods</a><a class="active" href="/playground" data-i18n="nav_try">Playground</a><a class="gh-link" href="https://github.com/abrahamperz/ByteCrawl" target="_blank" rel="noopener"><svg class="gh-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
       <span class="lang-sw"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button><button class="lang-btn" data-lang="pt">PT</button></span>
     </div>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
+    </button>
   </div>
 </nav>
 
@@ -164,11 +279,31 @@
   <div class="analyzer">
     <h2 class="azr-title" data-i18n="azr_title">Analyze any URL</h2>
     <p class="azr-sub" data-i18n="azr_sub">Paste a page: ByteCrawl picks the strategy (static or browser) and explains what it did and why.</p>
+    <div class="azr-modes" id="azr-modes">
+      <!-- Ordered by how specific each one is to this library: the graph
+           crawlers are the part nothing else ships, plain scraping is the part
+           everything ships. First chip is the landing mode. -->
+      <button class="azr-mode active" data-mode="crawl" data-i18n="pm_crawl">Graph crawl</button>
+      <button class="azr-mode" data-mode="auto" data-i18n="pm_markdown">Markdown</button>
+      <button class="azr-mode" data-mode="links" data-i18n="pm_links">Links</button>
+      <button class="azr-mode" data-mode="json" data-i18n="pm_json">JSON API</button>
+      <button class="azr-mode" data-mode="extract" data-i18n="pm_extract">Extract</button>
+    </div>
     <div class="azr-bar">
-      <input id="azr-url" class="azr-input" type="text" value="https://www.firecrawl.dev/"
-             placeholder="https://books.toscrape.com"
+      <!-- Seed value only for the first paint; pmSyncExtra() owns it from then
+           on and swaps in each mode's example. Keep it equal to the landing
+           mode's entry in PM_DEFAULTS (crawl) so the field doesn't change
+           under the visitor on load. -->
+      <input id="azr-url" class="azr-input" type="text"
+             value="https://en.wikipedia.org/wiki/Silicon_Valley"
+             placeholder="https://en.wikipedia.org/wiki/Silicon_Valley"
              onkeydown="if(event.key==='Enter')analyze()">
-      <button id="azr-btn" class="btn" onclick="analyze()" data-i18n="analyze_btn">Analyze</button>
+      <button id="azr-btn" class="btn" onclick="analyze()" data-i18n="analyze_btn">Run</button>
+    </div>
+    <div class="azr-extra" id="azr-extra-row">
+      <input id="azr-extra" class="azr-input" type="text"
+             onkeydown="if(event.key==='Enter')analyze()">
+      <span class="azr-extra-hint" id="azr-extra-hint"></span>
     </div>
     <div id="azr-hint" class="azr-hint"><span data-i18n="azr_hint">Change the URL and try yours.</span><span class="arrow">↑</span></div>
     <div id="azr-status" class="status"></div>
@@ -176,12 +311,215 @@
   </div>
 </div>
 
-<footer><div class="wrap">ByteCrawl — universal scraping layer · MIT</div></footer>
+<footer><div class="wrap"><a class="foot-brand" href="/"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="foot-mark">ByteCrawl</a>
+    <span class="foot-meta">Crawling for AI agents · MIT</span></div></footer>
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
+// --- method selector: Markdown explains the strategy, the rest hit /api ---
+// One URL field feeds six methods, so no single default works for all of
+// them: a book-grid CSS selector means nothing on a JSON endpoint, and a
+// toy quotes site shows nothing interesting for a focused crawl. Each mode
+// carries its own working example instead.
+//
+// Markdown runs /analyze rather than /api?method=markdown: it returns the
+// same conversion plus the routing steps and the token count it saved, so
+// a separate Auto mode would only be a thinner version of this one.
+//
+// Graph crawl runs all three strategies on the same budget instead of just
+// one. A single ordering looks like any other crawler; run side by side on
+// Wikipedia + "san francisco" it is 20/20 relevant pages for Shark-Search
+// against 1/20 for BFS, which is the whole reason the frontier strategies
+// are in here. The winner's ranked pages are shown below the comparison, so
+// nothing the single-strategy mode used to show is lost.
+// Listed in chip order; the first entry is the landing mode.
+const PM_DEFAULTS = {
+  crawl:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley',
+              ph: 'san francisco', hint: 'pm_hint_crawl' },
+  auto:     { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
+  links:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
+  json:     { url: 'https://data.sfgov.org/resource/wg3w-h783.json?$limit=5' },
+  extract:  { url: 'https://books.toscrape.com/',
+              ph: 'h3 a::attr(title)', hint: 'pm_hint_extract' },
+};
+// Swapping defaults on mode change is only safe while the field still holds
+// one of ours; anything else is the visitor's own input and must survive.
+const PM_OURS = new Set();
+for (const c of Object.values(PM_DEFAULTS)) {
+  PM_OURS.add(c.url);
+  if (c.ph) PM_OURS.add(c.ph);
+}
+// The seed value in the markup counts as ours too. Without this, a seed that
+// drifts out of PM_DEFAULTS looks like visitor input and sticks to every mode
+// — which is how the extract example ended up running a book-grid selector
+// against a quotes site and returning nothing.
+PM_OURS.add(document.getElementById('azr-url').value.trim());
+function pmMode() {
+  const el = document.querySelector('.azr-mode.active');
+  return el ? el.dataset.mode : 'crawl';
+}
+function pmSyncExtra() {
+  const cfg = PM_DEFAULTS[pmMode()] || {};
+  const url = document.getElementById('azr-url');
+  const row = document.getElementById('azr-extra-row');
+  const input = document.getElementById('azr-extra');
+  const hint = document.getElementById('azr-extra-hint');
+  if (cfg.url && (!url.value.trim() || PM_OURS.has(url.value.trim()))) {
+    url.value = cfg.url;
+  }
+  row.classList.toggle('show', !!cfg.ph);
+  if (cfg.ph) {
+    input.placeholder = cfg.ph;
+    if (!input.value.trim() || PM_OURS.has(input.value.trim())) input.value = cfg.ph;
+    hint.textContent = t(cfg.hint);
+    pmFitHint();
+  }
+}
+
+// The hint is absolutely positioned over the right end of the field, so the
+// text has to be kept out from under it. Measure rather than hardcode: "(query
+// to search)" and "(seletor CSS para scrapear)" are very different widths.
+function pmFitHint() {
+  const input = document.getElementById('azr-extra');
+  const hint = document.getElementById('azr-extra-hint');
+  // Below 820px the hint drops below the field (see the media query), so there
+  // is nothing overlapping the text and the padding must go back to normal.
+  const over = getComputedStyle(hint).position === 'absolute';
+  const w = hint.offsetWidth;
+  input.style.paddingRight = (over && w ? w + 24 : 14) + 'px';
+}
+document.addEventListener('bc:lang', pmFitHint);
+window.addEventListener('resize', pmFitHint);
+document.querySelectorAll('.azr-mode').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.azr-mode').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    pmSyncExtra();
+    document.getElementById('azr-out').innerHTML = '';
+    document.getElementById('azr-status').textContent = '';
+  });
+});
+
+function pmEscape(x) {
+  return String(x).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+function pmRender(mode, d, url) {
+  const out = document.getElementById('azr-out');
+  const link = (h, l) => `<a href="${pmEscape(h)}" target="_blank" rel="noopener" class="pm-link">${pmEscape(l)}</a>`;
+  if (mode === 'extract') {
+    const rows = (d.values || []).map(v => `<tr><td>${pmEscape(v)}</td></tr>`).join('');
+    out.innerHTML = `<div class="count-row"><span class="count">${(d.values || []).length} values · <code>${pmEscape(d.select)}</code></span></div>
+      <div class="tablewrap"><table>${rows}</table></div>`;
+  } else if (mode === 'json') {
+    out.innerHTML = `<div class="count-row"><span class="count">JSON response</span></div>
+      <pre>${pmEscape(JSON.stringify(d.data, null, 2))}</pre>`;
+  } else if (mode === 'links') {
+    const rows = (d.links || []).map(l => {
+      let abs = l; try { abs = new URL(l, url).href; } catch (_) {}
+      return `<tr><td>${link(abs, l)}</td></tr>`;
+    }).join('');
+    out.innerHTML = `<div class="count-row"><span class="count">${(d.links || []).length} links</span></div>
+      <div class="tablewrap"><table>${rows}</table></div>`;
+  }
+  out.className = 'azr-out show';
+}
+
+// The crawlers stay on the same root domain, but that includes every language
+// wiki — ast.wikipedia.org/wiki/Silicon_Valley and en.wikipedia.org/wiki/…
+// collapse to the same string once you strip the origin, so three distinct
+// results looked like one repeated row. Show the host whenever it differs from
+// the seed's, and decode %XX so non-Latin titles are readable.
+function pmShort(u, seedHost) {
+  try {
+    const p = new URL(u);
+    const path = decodeURI(p.pathname + p.search) || '/';
+    return p.host === seedHost ? path : p.host + path;
+  } catch (_) {
+    return u;
+  }
+}
+
+function pmHost(u) {
+  try { return new URL(u).host; } catch (_) { return ''; }
+}
+
+const PM_STRATS = ['bfs', 'shark', 'opic'];
+
+function pmLink(href, label) {
+  return `<a href="${pmEscape(href)}" target="_blank" rel="noopener" class="pm-link">${pmEscape(label)}</a>`;
+}
+
+// "Relevant" is the same 0.1 floor the CrawlResult.relevant() helper uses, so the
+// count on a card matches what the library would give you for that run.
+function pmRelevant(r) {
+  return (r.pages || []).filter(p => (p.relevance || 0) >= 0.1).length;
+}
+
+// One card, renderable at any point in a run's life. The three requests are
+// independent, so there is no reason to hold the first result hostage to the
+// slowest one — a card is painted as soon as its own strategy lands.
+function pmCard(r, seedHost, isBest) {
+  const head = `<div class="cmp-head"><b>${r.strategy.toUpperCase()}</b>` +
+    `${isBest ? ' <span class="cmp-badge">best</span>' : ''}</div>`;
+  if (r.state === 'pending') {
+    return `<div class="cmp-card cmp-idle">${head}` +
+      `<div class="cmp-nums"><span><span class="spinner"></span>${pmEscape(t('pm_cmp_running'))}</span></div></div>`;
+  }
+  if (r.state === 'err') {
+    // One strategy failing is not a reason to blank the other two, so the error
+    // stays inside its own card.
+    return `<div class="cmp-card cmp-idle">${head}` +
+      `<div class="cmp-nums cmp-fail"><span>✗ ${pmEscape(r.error || 'failed')}</span></div></div>`;
+  }
+  // Every page listed is a page you can go read — the top 3 here are clickable
+  // for the same reason the winner's full ranking below them is.
+  const top = (r.pages || []).slice().sort((a, b) => b.relevance - a.relevance).slice(0, 3);
+  const rows = top.map(p =>
+    `<tr><td title="${pmEscape(p.url)}">${pmLink(p.url, pmShort(p.url, seedHost))}</td>` +
+    `<td style="text-align:right;font-family:var(--mono)">${(p.relevance || 0).toFixed(3)}</td></tr>`).join('');
+  const avg = (r.stats.avg_relevance ?? 0).toFixed(3);
+  return `<div class="cmp-card${isBest ? ' cmp-win' : ''}">${head}
+    <div class="cmp-nums"><span>${pmRelevant(r)} ${pmEscape(t('adv_relevant'))}</span><span>${pmEscape(t('adv_avgrel'))} ${avg}</span><span>${r.stats.requests} ${pmEscape(t('adv_pages'))}</span><span>${r.stats.elapsed}s</span></div>
+    <table>${rows}</table>
+  </div>`;
+}
+
+function pmRenderCompare(runs, query, seedUrl) {
+  const seedHost = pmHost(seedUrl);
+  const out = document.getElementById('azr-out');
+  const done = runs.filter(r => r.state === 'ok');
+  // "best" is a claim about all three orderings, so it waits for all three.
+  // Awarding it while runs are still in flight would just mark whoever was
+  // fastest, which is the opposite of what the comparison is for.
+  const settled = runs.every(r => r.state !== 'pending');
+  const best = settled && done.length
+    ? done.reduce((a, b) => (pmRelevant(b) > pmRelevant(a) ? b : a))
+    : null;
+  const cards = runs.map(r => pmCard(r, seedHost, r === best)).join('');
+  let tail = '';
+  if (best) {
+    // The three cards only show each strategy's top 3. The winner's full ranked
+    // list is what you'd actually feed to an LLM, so it goes below in full, with
+    // clickable URLs.
+    const bestHits = (best.pages || []).filter(p => (p.relevance || 0) >= 0.1);
+    const bestList = (bestHits.length ? bestHits : (best.pages || []))
+      .slice().sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+    const bestRows = bestList.map(p =>
+      `<tr><td title="${pmEscape(p.url)}">${pmLink(p.url, pmShort(p.url, seedHost))}</td>` +
+      `<td style="text-align:right;font-family:var(--mono)">${(p.relevance || 0).toFixed(3)}</td></tr>`).join('');
+    tail = `<div class="count-row"><span class="count">${pmEscape(t('pm_cmp_best'))} ${best.strategy.toUpperCase()} · ${bestHits.length}/${best.stats.requests} · ${best.stats.elapsed}s</span></div>
+    <div class="tablewrap"><table class="rank">${bestRows}</table></div>`;
+  }
+  out.innerHTML = `<div class="count-row"><span class="count">${pmEscape(t('pm_cmp_head'))} <i>${pmEscape(query)}</i></span></div>
+    <div class="cmp-grid">${cards}</div>${tail}`;
+  out.className = 'azr-out show';
+}
+
 async function analyze() {
   const url = document.getElementById("azr-url").value.trim();
+  const mode = pmMode();
+  const extra = (document.getElementById("azr-extra").value || '').trim();
   const btn = document.getElementById("azr-btn");
   const status = document.getElementById("azr-status");
   const out = document.getElementById("azr-out");
@@ -190,17 +528,74 @@ async function analyze() {
   status.className = "status run"; status.innerHTML = '<span class="spinner"></span>' + t("st_analyzing");
   out.className = "azr-out"; out.innerHTML = "";
   try {
-    const r = await fetch("/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, lang: currentLang() }),
-    });
-    const j = await r.json();
-    if (!j.ok) { status.className = "status err"; status.textContent = "✗ " + (j.error || "Error"); return; }
+    if (mode === 'auto') {
+      const r = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, lang: currentLang() }),
+      });
+      const j = await r.json();
+      if (!j.ok) { status.className = "status err"; status.textContent = "✗ " + (j.error || "Error"); return; }
+      status.className = "status ok";
+      status.innerHTML = `✓ ${t("st_strategy")} <span class="time">${j.method}</span>`;
+      renderAnalysis(j);
+      document.getElementById("azr-hint").classList.add("show");
+      return;
+    }
+    if (mode === 'crawl') {
+      // same budget, three orderings — the only fair way to compare them
+      const t0 = Date.now();
+      // The grid is painted immediately, in a fixed order, with all three cards
+      // empty; each one fills in place when its own request lands. Shark
+      // typically comes back ~3s before the slowest run, and there is no reason
+      // to make you wait for the slowest to see it.
+      const runs = PM_STRATS.map(strategy => ({ strategy, state: 'pending' }));
+      pmRenderCompare(runs, extra, url);
+      let landed = 0;
+      const tick = () => {
+        status.className = 'status run';
+        status.innerHTML = `<span class="spinner"></span>${t('st_three')} <span class="time">${landed}/${runs.length}</span>`;
+      };
+      tick();
+      await Promise.all(runs.map(async run => {
+        try {
+          const r = await fetch('/crawl', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, strategy: run.strategy, query: extra }),
+          });
+          const d = await r.json();
+          Object.assign(run, d, { state: d.ok ? 'ok' : 'err' });
+        } catch (e) {
+          run.state = 'err';
+          run.error = String(e);
+        }
+        landed++;
+        tick();
+        pmRenderCompare(runs, extra, url);
+      }));
+      // Only a total wipeout is a page-level error; one strategy failing has
+      // already been reported inside its own card.
+      const okRuns = runs.filter(x => x.state === 'ok');
+      if (!okRuns.length) {
+        status.className = 'status err';
+        status.textContent = '✗ ' + ((runs.find(x => x.error) || {}).error || 'crawl failed');
+        return;
+      }
+      status.className = 'status ok';
+      // The .time chip is for a single datum (a method, a duration) — prose
+      // inside it reads as a mislabelled value. The three runs are concurrent,
+      // so the wall clock is the honest number, not the sum of the three.
+      status.innerHTML = `✓ ${t('st_three')} <span class="time">${((Date.now() - t0) / 1000).toFixed(1)}s</span>`;
+      return;
+    }
+    const params = new URLSearchParams({ url, method: mode });
+    if (mode === 'extract') params.set('select', extra);
+    const r = await fetch('/api?' + params.toString());
+    const d = await r.json();
+    if (d.error) { status.className = "status err"; status.textContent = "✗ " + d.error; return; }
     status.className = "status ok";
-    status.innerHTML = `✓ ${t("st_strategy")} <span class="time">${j.method}</span>`;
-    renderAnalysis(j);
-    document.getElementById("azr-hint").classList.add("show");
+    status.innerHTML = `✓ <span class="time">/api?method=${mode}</span>`;
+    pmRender(mode, d, url);
   } catch (e) {
     status.className = "status err"; status.textContent = "✗ " + e;
   } finally { btn.disabled = false; }
@@ -222,14 +617,22 @@ function renderAnalysis(j) {
     <a class="badge badge-deep" href="/methods?url=${encodeURIComponent(j.url)}#advanced">${t("badge_deep")} →</a>
     ${tokens}
   </div>`;
+  // A long article converts to ~140k characters and pasting that into one
+  // <pre> locks the tab. Show the head only; copy and download below still
+  // hand over the whole thing, which is what people actually want it for.
+  const full = j.sample_md || "";
+  const shown = full.length > 4000 ? full.slice(0, 4000) + "\n\n…" : full;
+  const cut = full.length > 4000
+    ? ` · ${t("md_first_of").replace("{n}", full.length.toLocaleString("en-US"))}`
+    : "";
   const sample = j.sample_md
     ? `<div class="count-row">
-         <div class="count">${t("md_ready")}</div>
+         <div class="count">${t("md_ready")}${cut}</div>
          <div class="dl-row">
            <button class="dl" onclick="copyMd(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>${t("md_copy")}</span></button>
            <button class="dl" onclick="downloadMd()">${t("md_download")}</button>
          </div>
-       </div><pre>${escapeHtml(j.sample_md)}</pre>`
+       </div><pre>${escapeHtml(shown)}</pre>`
     : "";
   const why = `<div class="azr-why"><b>${t("why_q")}</b>${escapeHtml(j.why)}</div>`;
   out.innerHTML = `<div class="azr-steps">${steps}</div>${meta}${sample}${why}`;
@@ -266,12 +669,37 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-window.addEventListener("DOMContentLoaded", analyze);
+window.addEventListener("DOMContentLoaded", () => {
+  // Deep link from the landing action bar: /playground?url=...
+  const deep = new URLSearchParams(location.search).get("url");
+  if (deep) {
+    document.getElementById("azr-url").value = deep;
+    // Someone arriving with their own URL brought a page, not a topic, and the
+    // landing mode's example query ("san francisco") would be meaningless for
+    // it. Markdown needs nothing but the URL, so that is where they land.
+    document.querySelectorAll('.azr-mode').forEach(x =>
+      x.classList.toggle('active', x.dataset.mode === 'auto'));
+  }
+  pmSyncExtra();
+});
 
 // Re-fetch on language switch so server-localized steps/why also translate
 document.addEventListener("bc:lang", () => {
   if (document.getElementById("azr-out").classList.contains("show")) analyze();
 });
+</script>
+<script>
+  // mobile nav toggle
+  (function () {
+    const btn = document.querySelector('.menu-btn');
+    if (!btn) return;
+    const nav = btn.closest('nav');
+    btn.addEventListener('click', () => {
+      btn.setAttribute('aria-expanded', nav.classList.toggle('open'));
+    });
+    nav.querySelectorAll('.navlinks a').forEach(a =>
+      a.addEventListener('click', () => nav.classList.remove('open')));
+  })();
 </script>
 </body>
 </html>
