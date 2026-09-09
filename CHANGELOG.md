@@ -41,10 +41,14 @@
   message it has none of it, and `/bytecrawl` never appears. The skill showed
   the install command but never told the agent to run it, so the button promised
   setup and delivered a single answer. Installing itself is now the first
-  instruction in the file: if the pasted line was the whole message the person
-  is setting up, so install and say so in one line; if a task came with it, do
-  the task and offer the install at the end; if there is no filesystem to write
-  to, skip it silently.
+  instruction in the file — and it branches on what the agent is, because a
+  skills directory is Claude Code's convention and telling Codex or Cursor to
+  write `~/.claude/skills/` produces a file nobody reads. Claude Code installs
+  the file and gets `/bytecrawl`; an MCP client with no skills directory adds
+  the hosted server, which is the one path that persists everywhere and hands
+  over the tools rather than instructions about them; an agent with an
+  `AGENTS.md` adds one line pointing back; a sandbox with nothing to write to
+  skips it silently. If a task came with the URL, the task comes first.
 
 ### Changed
 - `fetch_markdown` returns `tokens_html` next to `tokens_estimate`, the pair the
