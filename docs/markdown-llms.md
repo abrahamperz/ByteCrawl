@@ -10,4 +10,4 @@ print(page.tokens(), "->", page.tokens(of=md))
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: Estrategia mental →](estrategia.md)
+[← Volver al índice](../README.es.md) · [Siguiente: Estrategia mental →](estrategia.md)

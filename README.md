@@ -5,20 +5,85 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/bytecrawl/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**Focused crawling for LLM data collection** — Shark-Search and OPIC in pure
-Python, on a 3-dependency core. Plus one small API for everyday scraping:
-static HTML, JS-rendered pages, hidden JSON APIs, session login, pagination,
-and Markdown conversion that cuts LLM token costs 5–10×.
-
 *Léelo en [español](README.es.md).*
 
-- **Live demo**: https://bytecrawl.vercel.app/
-- **PyPI**: https://pypi.org/project/bytecrawl/
+**Give your AI agent focused web crawling.** ByteCrawl is an MCP server (and a
+small Python library) that doesn't just scrape a page — it crawls a whole site
+and returns the pages *most relevant* to your topic first, using Shark-Search
+and OPIC in pure Python.
 
-## Why another crawler?
+- **Webpage**: https://bytecrawl.vercel.app/
+- **Hosted MCP endpoint**: https://bytecrawl.vercel.app/mcp
+- **Agent skill**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+- **Latest release**: **1.1.0** — six MCP tools, strategy comparison,
+  absolute `Page.links()` ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 
-Most crawlers visit pages in whatever order they find them. When you're
-collecting data on a topic with a limited request budget, order is everything:
+## Point an agent at it (no install, no key)
+
+If you work through an AI agent, the fastest route is neither of the sections
+below — hand it the skill and let it choose:
+
+```
+Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+One Markdown file, readable by Claude Code, Cursor, or anything that can fetch a
+URL. It routes to the right path for the job (hosted API, MCP, Python library,
+or a real browser for JS-rendered pages), documents how to select a crawl
+strategy, and includes measured numbers for what that choice buys you.
+[Read it yourself](https://bytecrawl.vercel.app/agent-onboarding/SKILL.md).
+
+## Quick start (MCP — nothing to install)
+
+Point any MCP-capable agent (Claude Code, Claude Desktop, Cursor...) at the
+hosted endpoint:
+
+```bash
+claude mcp add --transport http bytecrawl https://bytecrawl.vercel.app/mcp
+```
+
+Now the agent has six tools — the same six things the playground lets a human do:
+
+| Tool | What it does |
+|---|---|
+| `focused_crawl` | Crawl a site, rank pages by relevance to a query (Shark-Search / OPIC / BFS) |
+| `compare_strategies` | Run all three over the same site on the same budget and see which one wins |
+| `fetch_markdown` | One page → clean Markdown (5–10× fewer tokens than raw HTML) |
+| `extract` | Structured records via CSS selectors, or a flat list from one selector |
+| `list_links` | Every outbound link, absolute and deduplicated |
+| `fetch_json_api` | Hit a hidden JSON API |
+
+### Then just ask
+
+You don't call the tools yourself. Once the server is connected you ask in plain
+language and the agent picks one:
+
+> Use **bytecrawl** to find everything on python.org about the packaging ecosystem
+
+> Read https://example.com/pricing with **bytecrawl** and give me the plans as a table
+
+> Which crawl strategy does best on wikipedia.org for "san francisco"? Compare them
+
+Saying the name is worth the two syllables: most agents ship their own
+single-page fetcher and will reach for that by default. Naming **bytecrawl** is
+what gets you a focused crawl instead of one page read in isolation.
+
+The hosted server is static-only, rate-limited per IP, caps crawls at 10 pages,
+and refuses non-public URLs (SSRF guard). For heavy use or JS-rendered sites,
+run it locally:
+
+```bash
+pip install bytecrawl[mcp]
+claude mcp add bytecrawl -- bytecrawl-mcp                 # full power, on your machine
+pip install bytecrawl[browser] && playwright install chromium   # + JS rendering
+```
+
+## Why focused crawling?
+
+Most crawlers visit pages in whatever order they find them. With a limited
+request budget, order is everything — Shark-Search chases the branches that
+smell like your query and lets the rest decay, so 100 requests get you the 100
+*most useful* pages, not the 100 closest to the seed.
 
 ```python
 from bytecrawl import SharkSearch
@@ -28,132 +93,119 @@ result = SharkSearch(query="vector databases").crawl(
 
 for page in result.top(10):
     print(f'{page["relevance"]:.3f}  {page["url"]}')
-
-result.graph  # {url: [links]} — feed it to pagerank() for offline analysis
 ```
 
-Shark-Search chases the branches of a site that smell like your query and
-lets irrelevant ones decay geometrically — so 100 requests get you the 100
-*most useful* pages, not the 100 closest to the seed.
-
-|  | Scrapy | Firecrawl | ByteCrawl |
-|---|---|---|---|
-| Shape | framework (projects, pipelines) | SaaS API | plain library |
-| Core install | ~20 packages | — | 3 packages |
-| Crawl ordering | FIFO/priority you write yourself | managed | **BFS · Shark-Search · OPIC built in** |
-| Cost | free | per-credit | free |
-
-The three strategies share one loop (`pop → fetch → score links → push`), so
-comparing them on the same site is a fair experiment — the demo does exactly
-that, live.
-
 - **BFS** — level by level, closest to the seed first.
-- **Shark-Search** (Hersovici et al., 1998) — topical best-first: links
-  inherit their parent's relevance with decay; bad branches die out on their own.
-- **OPIC** (Abiteboul et al., 2003) — each page holds "cash" it distributes to
-  its links when visited: PageRank computed live, without the full graph.
-  A `pagerank()` power-iteration implementation is included to compare against.
+- **Shark-Search** (Hersovici et al., 1998) — topical best-first; links inherit
+  their parent's relevance with decay.
+- **OPIC** (Abiteboul et al., 2003) — live PageRank via "cash" flow, no full
+  graph needed (a `pagerank()` implementation is included to compare against).
 
-## Everyday scraping
+All three share one loop — pop, fetch, score links, push — so the same page
+budget across strategies is a fair comparison. Every surface takes the same
+three names, `shark` (default) / `opic` / `bfs`:
+
+| Surface | How |
+|---|---|
+| MCP | `focused_crawl(url, query, strategy="opic", max_pages=20)` |
+| HTTP API | `?url=SITE&method=crawl&query=TOPIC&strategy=opic` |
+| Python | instantiate the class: `OPIC(delay=0.5).crawl(url, max_pages=50)` |
+
+An unknown name is rejected rather than silently defaulted: the API returns 400,
+the MCP tool raises `ValueError`. `SharkSearch` requires `query` — without a
+topic it has nothing to rank. `BFS` and `OPIC` accept `query` too, but only to
+score the pages in the result; it does not change their traversal order.
+
+From `en.wikipedia.org/wiki/Silicon_Valley` with query `san francisco` and 20
+pages each, Shark returns 20 pages above 0.1 relevance against 4 for OPIC and 1
+for BFS, and its best page scores 0.7774 against BFS's 0.1068 — 7.3x on the same
+request budget. Reproduce it with `result.relevant(0.1)`. A lower threshold will
+not close the gap: 20 pages leaves thousands of URLs still queued, so coverage
+never converges the way it does on a site small enough to exhaust.
+
+Shark-Search exposes both parameters from the paper — `delta` (0.5) sets how
+fast a branch with no signal fades (decay is `δⁿ` with depth) and `gamma` (0.8)
+splits a link's score between its parent and its own anchor text,
+`score = γ·inherited + (1−γ)·local`.
+
+Versus the alternatives: Scrapy is a framework you wire up yourself, Firecrawl
+is a paid SaaS — ByteCrawl is a plain library with a 3-package core and these
+frontier strategies built in.
+
+## Library API
 
 ```python
 from bytecrawl import Scraper
 
 bot = Scraper()
-page = bot.fetch("https://books.toscrape.com")   # auto: static, falls back to browser
-books = page.extract("article.product_pod", {
-    "title": "h3 a::attr(title)",
-    "price": "p.price_color::text",
-})
+page = bot.fetch("https://books.toscrape.com")   # auto: static, browser fallback
+books = page.extract("article.product_pod",
+                     {"title": "h3 a::attr(title)", "price": "p.price_color::text"})
+page.markdown()   # clean Markdown for LLMs   ·   page.tokens()   # token estimate
 ```
 
 ```python
-page.markdown()   # clean Markdown for LLM ingestion (needs the llm extra)
-page.tokens()     # quick token estimate
-```
-
-Explicit strategies when you know what you're dealing with:
-
-```python
-bot.static(url)                          # plain HTML
-bot.api(url, params={...})               # hidden JSON APIs
-bot.browser(url, wait="div.results")     # JS rendering via Playwright
+bot.static(url)                                   # plain HTML
+bot.api(url, params={...})                        # hidden JSON API
+bot.browser(url, wait="div.results")              # JS via Playwright
 bot.crawl(url, item="article", fields={...},
-          next_page="li.next a::attr(href)")   # follow pagination
-bot.session().login(url, data, csrf_field="csrf_token")  # authenticated
-```
-
-## Use it from an AI agent (MCP)
-
-ByteCrawl ships an MCP server that **runs locally on your machine** (stdio
-transport — there is no hosted/remote endpoint yet), so any MCP-capable agent
-(Claude Code, Claude Desktop, Cursor...) can scrape and focused-crawl directly:
-
-```bash
-pip install bytecrawl[mcp]
-claude mcp add bytecrawl -- bytecrawl-mcp     # Claude Code
-```
-
-Or in any MCP client config:
-
-```json
-{"mcpServers": {"bytecrawl": {"command": "bytecrawl-mcp"}}}
-```
-
-The agent gets four tools: `fetch_markdown` (page → LLM-ready Markdown),
-`extract` (CSS-selector records), `focused_crawl` (Shark-Search/OPIC/BFS with
-relevance ranking) and `fetch_json_api`.
-
-For JS-rendered sites, also install the browser extra — `fetch_markdown` and
-`extract` then fall back to a real browser automatically when a page comes
-back empty:
-
-```bash
-pip install bytecrawl[browser] && playwright install chromium
+          next_page="li.next a::attr(href)")      # pagination
+bot.session().login(url, data, csrf_field="csrf_token")   # authenticated
 ```
 
 ## Install
 
 ```bash
-pip install bytecrawl            # slim core: requests + beautifulsoup4 + lxml
-pip install bytecrawl[llm]       # + Markdown conversion (trafilatura, markdownify)
+pip install bytecrawl            # slim core (requests + beautifulsoup4 + lxml)
+pip install bytecrawl[llm]       # + Markdown for LLMs
 pip install bytecrawl[browser]   # + Playwright (then: playwright install chromium)
-pip install bytecrawl[all]       # everything
+pip install bytecrawl[mcp]       # + local MCP server (Python 3.10+)
+pip install bytecrawl[all]
 ```
 
-## Docs
+A missing extra never fails silently — each one raises an ImportError naming the
+exact command to run.
 
-Teaching docs (Spanish) — each scraping technique explained with a runnable
-example against a practice site:
+## HTTP API (no install)
 
-1. [Static HTML](docs/01-html-estatico.md) ·
-2. [Dynamic JS](docs/02-js-dinamico.md) ·
-3. [Hidden APIs](docs/03-api-oculta.md) ·
-4. [Pagination](docs/04-crawling-paginacion.md) ·
-5. [Session login](docs/05-login-sesion.md) ·
-6. [Graph crawling](docs/06-crawling-grafos.md) ·
-[Markdown for LLMs](docs/markdown-llms.md) ·
-[Strategy](docs/estrategia.md) ·
-[Ethics](docs/nota-etica.md)
-
-## Development
+The same engine behind one hosted GET endpoint. Everything except `url` is
+optional; no key, no account.
 
 ```bash
-pip install -e ".[llm,dev]"
-pytest --cov=bytecrawl   # 89 tests, no network required
-ruff check bytecrawl tests
-
-# live browser tests (real network + Chromium):
-pip install -e ".[browser]" && playwright install chromium
-pytest -m live
+curl "https://bytecrawl.vercel.app/api?url=books.toscrape.com"
+curl "https://bytecrawl.vercel.app/api?url=en.wikipedia.org/wiki/Silicon_Valley&method=crawl&query=san+francisco&strategy=shark"
 ```
 
-## Ethics
+`method` is one of `markdown` (default), `text`, `html`, `links`, `json`,
+`extract`, `crawl`. Static HTML only, crawls capped at 10 pages, rate-limited,
+responses cached 10 minutes, private and loopback addresses refused. Full
+reference: https://bytecrawl.vercel.app/docs
 
-Respect `robots.txt`, terms of service and rate limits. ByteCrawl ships with a
-configurable delay between requests and the docs include an
-[ethics note](docs/nota-etica.md). Scrape responsibly.
+## Learn each scraping technique
+
+A guided walkthrough (in Spanish) with a runnable example against a practice
+site:
+[static HTML](docs/01-html-estatico.md) ·
+[dynamic JS](docs/02-js-dinamico.md) ·
+[hidden APIs](docs/03-api-oculta.md) ·
+[pagination](docs/04-crawling-paginacion.md) ·
+[login](docs/05-login-sesion.md) ·
+[graph crawling](docs/06-crawling-grafos.md) ·
+[Markdown for LLMs](docs/markdown-llms.md) ·
+[ethics](docs/nota-etica.md)
+
+## Contributing
+
+```bash
+pip install -e ".[llm,dev,mcp]"
+pytest              # 120 tests, no network required
+pytest -m live      # + live browser tests (needs the browser extra)
+ruff check bytecrawl tests
+```
+
+Scrape responsibly: respect `robots.txt`, terms of service and rate limits.
+ByteCrawl ships with a configurable delay between requests.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

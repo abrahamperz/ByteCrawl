@@ -10,4 +10,4 @@ print(data.json())
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: Crawling con paginación →](04-crawling-paginacion.md)
+[← Volver al índice](../README.es.md) · [Siguiente: Crawling con paginación →](04-crawling-paginacion.md)

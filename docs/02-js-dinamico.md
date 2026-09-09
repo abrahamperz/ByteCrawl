@@ -10,4 +10,4 @@ print(page.css_all("span.text"))
 
 ---
 
-[← Volver al índice](../README.md) · [Siguiente: API oculta →](03-api-oculta.md)
+[← Volver al índice](../README.es.md) · [Siguiente: API oculta →](03-api-oculta.md)
