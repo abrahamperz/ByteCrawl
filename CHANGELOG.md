@@ -1,4 +1,44 @@
 # Changelog
+## 1.2.0 — 2026-09-09
+
+**Extraction without having read the markup.** Call `extract` with only a URL
+and it tells you what the page offers: the blocks that repeat, a ready-to-run
+`item` + `fields` for each, and a sample record. Same on every surface — the
+MCP tool, `/api?method=extract` with no selector, and the playground's Extract
+chip left empty, which turns each block into a button that fills the field and
+runs it.
+
+```python
+page.selectors()[0]["fields"]
+{'price_color': 'p.price_color::text', 'thumbnail': 'img.thumbnail::attr(src)', ...}
+```
+
+### Fixed
+- **Markdown was throwing away listing pages.** On `books.toscrape.com` — the
+  first URL the README tells you to curl — it returned the price column and
+  dropped all twenty book titles. Article extraction discards repetition, and on
+  a listing the repetition is the content. Affected every surface: the hosted
+  API, the playground and `fetch_markdown`. With the content back, the saving is
+  the 5-10x the README claims, not the 144x that meant most of the page was gone.
+- **"Setup for agents" set nothing up.** The button copies a line that makes an
+  agent read the skill for one turn; `/bytecrawl` never appeared. The skill now
+  installs itself, choosing the right way for the agent it is talking to — a
+  skills directory, the MCP server, or a project instruction file.
+- **`/docs` advertised v1.0.0** through three releases. It reads the real
+  version now.
+
+### Changed
+- `fetch_markdown` reports `tokens_html` beside `tokens_estimate`, so you can
+  state the token saving instead of assuming it.
+
+## 1.1.3 — 2026-09-09
+
+### Added
+- **`/bytecrawl` as a slash command.** One line installs the agent skill, and it
+  is there in every session instead of for one turn. Run it bare and it asks
+  what you want — crawl a site for a topic, compare the strategies, read a page,
+  pull fields, list links, get the JSON behind a page — in whatever language you
+  wrote in. Give it a task and it just does it.
 
 ## 1.2.0 — 2026-09-09
 
@@ -109,36 +149,16 @@
 ## 1.1.2 — 2026-09-09
 
 ### Fixed
-- **The agent skill sent agents to a repo that 404s.** `SKILL.md` — the file
-  handed to an agent as the entry point — pointed at a GitHub URL that does not
-  exist, so anything that went looking for the source or an issue tracker hit a
-  dead end.
-- **It documented API response fields that no method returns.** The skill
-  promised `status` and `elapsed`; every response actually carries `url` and
-  `method`, which were undocumented, and `compare` was not documented at all.
-  The troubleshooting steps then told you to read `page.status` to diagnose a
-  failed call — so the first debugging move the skill taught did not work over
-  HTTP.
-
-### Added
-- A smoke suite against the deployed site (`pytest -m smoke`, excluded from CI
-  like the browser tests). Every bug in this release and the last was invisible
-  to the offline suite: they lived in the gap between what the project says and
-  what the deploy does. These check that the skill's links resolve, that the
-  API returns the fields it documents, that the hosted MCP server lists its six
-  tools, and that the SSRF guard is live.
+- The agent skill linked to a repository that 404s, and documented API response
+  fields that no method returns — including telling you to read a `status` field
+  the API has never sent, which was the first debugging step it taught.
 
 ## 1.1.1 — 2026-09-09
 
 ### Fixed
-- **The hosted MCP endpoint answered every request with `421 Invalid Host
-  header`.** The transport enables DNS-rebinding protection whenever the app is
-  built for its default `127.0.0.1` host, and then allows only localhost — so
-  nothing reaching `bytecrawl.vercel.app` got through. That protection is for a
-  server bound to your own machine; this one is public, unauthenticated and
-  already behind an SSRF guard, so it now ships open. Set
-  `BYTECRAWL_ALLOWED_HOSTS` (and `BYTECRAWL_ALLOWED_ORIGINS`) to turn it back on
-  if you self-host on a domain that also serves authenticated apps.
+- **The hosted MCP endpoint refused every request** with `421 Invalid Host
+  header`. It ships open now; set `BYTECRAWL_ALLOWED_HOSTS` to restrict it if
+  you self-host on a domain that also serves authenticated apps.
 
 ## 1.1.0 — 2026-09-09
 
