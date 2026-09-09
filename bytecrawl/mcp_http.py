@@ -27,11 +27,13 @@ Connect:    claude mcp add --transport http bytecrawl https://bytecrawl.vercel.a
 
 from __future__ import annotations
 
+import os
 import time
 from collections import defaultdict, deque
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 
 from . import mcp_server as local
 from .security import assert_public_url
@@ -179,11 +181,44 @@ def fetch_json_api(url: str, params: dict | None = None) -> dict:
     return local.fetch_json_api(url, params=params)
 
 
+def _transport_security() -> TransportSecuritySettings:
+    """Host/Origin validation for the streamable-HTTP transport.
+
+    The SDK turns DNS-rebinding protection on by itself whenever the app is
+    built for the default 127.0.0.1 host, and then allows only localhost — so
+    the deployed server answered every real request with
+
+        421  Invalid Host header
+
+    That protection is for MCP servers bound to a developer's machine, where a
+    malicious page could otherwise reach a service the browser can see and the
+    internet cannot. This server is the opposite: public, unauthenticated, no
+    cookies, and behind an SSRF guard that already refuses anything a caller
+    could not fetch directly. Validating Host buys nothing here.
+
+    Set BYTECRAWL_ALLOWED_HOSTS (comma-separated; `host:*` wildcards allowed,
+    and BYTECRAWL_ALLOWED_ORIGINS alongside it) to turn it back on — worth
+    doing if you self-host on a domain that also serves authenticated apps.
+    """
+    hosts = [h.strip() for h in
+             os.environ.get("BYTECRAWL_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    if not hosts:
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    origins = [o.strip() for o in
+               os.environ.get("BYTECRAWL_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=hosts,
+        allowed_origins=origins,
+    )
+
+
 def create_app(limiter: RateLimiter | None = None):
     """ASGI app: streamable-HTTP MCP at /mcp, rate-limited. Stateless for
     serverless (json_response avoids long-lived SSE streams on Vercel)."""
     app = server.streamable_http_app(
         streamable_http_path="/mcp", stateless_http=True, json_response=True,
+        transport_security=_transport_security(),
     )
     return RateLimitMiddleware(app, limiter)
 

@@ -150,3 +150,40 @@ async def test_hosted_server_registers_same_tools():
     assert hosted == {"fetch_markdown", "extract", "list_links",
                       "focused_crawl", "compare_strategies", "fetch_json_api"}
     assert hosted == {t.name for t in await local_server.server.list_tools()}
+
+
+class TestTransportSecurity:
+    """The SDK enables DNS-rebinding protection whenever the app is built for
+    the default 127.0.0.1 host, allowing only localhost — which made the
+    deployed server answer every real request with 421 Invalid Host header.
+    """
+
+    def test_open_by_default(self, monkeypatch):
+        monkeypatch.delenv("BYTECRAWL_ALLOWED_HOSTS", raising=False)
+        s = mcp_http._transport_security()
+        assert s.enable_dns_rebinding_protection is False
+
+    def test_env_turns_it_back_on(self, monkeypatch):
+        monkeypatch.setenv("BYTECRAWL_ALLOWED_HOSTS", "mcp.example.com, other:*")
+        monkeypatch.setenv("BYTECRAWL_ALLOWED_ORIGINS", "https://mcp.example.com")
+        s = mcp_http._transport_security()
+        assert s.enable_dns_rebinding_protection is True
+        assert s.allowed_hosts == ["mcp.example.com", "other:*"]
+        assert s.allowed_origins == ["https://mcp.example.com"]
+
+    def test_blank_env_is_not_an_empty_allowlist(self, monkeypatch):
+        """An empty allowlist with protection on would reject everything —
+        the failure mode this whole setting exists to avoid."""
+        monkeypatch.setenv("BYTECRAWL_ALLOWED_HOSTS", "  , ")
+        assert mcp_http._transport_security().enable_dns_rebinding_protection is False
+
+    def test_app_passes_the_settings_through(self, monkeypatch):
+        seen = {}
+        orig = mcp_http.server.streamable_http_app
+
+        def spy(**kw):
+            seen.update(kw)
+            return orig(**kw)
+        monkeypatch.setattr(mcp_http.server, "streamable_http_app", spy)
+        mcp_http.create_app()
+        assert "transport_security" in seen, "app built without Host settings"
