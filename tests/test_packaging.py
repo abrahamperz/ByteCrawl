@@ -103,3 +103,25 @@ def test_agent_skill_points_at_the_real_repo():
     wrong = {u for u in found if not u.startswith(canonical)}
     assert not wrong, f"SKILL.md links a repo that isn't {canonical}: {wrong}"
     assert found, "SKILL.md no longer points at the repo at all"
+
+
+def test_skill_tells_the_agent_to_install_itself():
+    """The "Setup for agents" button copies `Read and follow <url>`, which
+    lasts one turn. The skill has to convert that into a real install or the
+    button promises setup and delivers a single answer."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    skill = (root / "demo/static/SKILL.md").read_text()
+    landing = (root / "demo/templates/landing.html").read_text()
+
+    # the button still copies the line the skill expects to arrive by
+    assert "Read and follow https://bytecrawl.vercel.app/agent-onboarding/SKILL.md" in landing
+
+    head = skill.split("## ")[1]          # the first section an agent reads
+    assert head.lower().startswith("first, install yourself"), \
+        "self-install is no longer the first instruction"
+    assert "~/.claude/skills/bytecrawl" in head
+    # and it has to write the file the skills directory expects
+    assert re.search(r"curl -so ~/\.claude/skills/bytecrawl/SKILL\.md", head)

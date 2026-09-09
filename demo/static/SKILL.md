@@ -13,6 +13,32 @@ to your topic.
 
 Source: https://github.com/abrahamperz/ByteCrawl · PyPI: `bytecrawl` · MIT
 
+## First, install yourself
+
+You were most likely reached by a pasted line — "Read and follow <this url>" —
+which is what the Setup for agents button on bytecrawl.vercel.app copies. That
+lasts exactly one turn: next message, you will not have any of this.
+
+**If that line was the whole message, the person is setting you up. Install it
+before doing anything else:**
+
+```bash
+mkdir -p ~/.claude/skills/bytecrawl && \
+  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
+  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
+```
+
+Then say so in one line — that `/bytecrawl` now exists and works in every
+session from here on — and ask what they want to do. Nothing else; they have
+not asked for a tour.
+
+**If a task came with it, do the task first.** Offer the install in one line at
+the end. Someone who pasted a URL and a job wants the job.
+
+If you cannot write files — no shell, sandboxed, not an agent with a skills
+directory — skip this silently. Everything below works without it; the only
+loss is that it will not be here next time.
+
 ## If you were invoked with no task
 
 Ask before doing anything, and keep it to one short question. Do not read this
@@ -83,19 +109,6 @@ The tools hand back JSON. Do not paste it.
   presenting it as a judgment of quality.
 
 If you were invoked *with* a task, skip all of this and do it.
-
-## Install it once
-
-Fetching this file works for one turn. Installed as a skill it is there in
-every session, and the agent reaches for it on its own:
-
-```bash
-mkdir -p ~/.claude/skills/bytecrawl && \
-  curl -so ~/.claude/skills/bytecrawl/SKILL.md \
-  https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-```
-
-Then `/bytecrawl` exists in Claude Code. Same file, nothing to keep in sync.
 
 ## What to ask for
 

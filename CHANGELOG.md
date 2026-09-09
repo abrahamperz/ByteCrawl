@@ -35,6 +35,17 @@
   quotes and 6.6x on a Wikipedia article — the 5-10x the README claims. The
   broken version scored 144x, which was not a saving.
 
+### Fixed
+- **"Setup for agents" set nothing up.** The button copies `Read and follow
+  <url>`, which makes an agent read the skill for exactly one turn — next
+  message it has none of it, and `/bytecrawl` never appears. The skill showed
+  the install command but never told the agent to run it, so the button promised
+  setup and delivered a single answer. Installing itself is now the first
+  instruction in the file: if the pasted line was the whole message the person
+  is setting up, so install and say so in one line; if a task came with it, do
+  the task and offer the install at the end; if there is no filesystem to write
+  to, skip it silently.
+
 ### Changed
 - `fetch_markdown` returns `tokens_html` next to `tokens_estimate`, the pair the
   playground already showed. On its own the token count has nothing to compare
