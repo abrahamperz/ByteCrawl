@@ -1,4 +1,14 @@
 # Changelog
+## 1.2.2 — 2026-09-10
+
+### Fixed
+- **`fetch_markdown` could leak raw JavaScript into its output.** On pages
+  where the main-content extractor bails (ad-heavy listings, like
+  tapology.com's rankings), the fallback converter kept `<script>` contents as
+  loose text instead of dropping them — so the "clean Markdown" could open
+  with a wall of ad-tech JS. Fixed; the playground's Markdown preview also
+  shows the full result now instead of the first 4,000 characters.
+
 ## 1.2.1 — 2026-09-09
 
 Wording, and one change to how the agent skill behaves. Nothing in the library
