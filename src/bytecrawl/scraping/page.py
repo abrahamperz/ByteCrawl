@@ -306,7 +306,15 @@ class Page:
                 "Page.markdown() needs the 'llm' extra: pip install bytecrawl[llm]"
             ) from e
 
-        return _clean_markdown(markdownify(self.html, strip=["script", "style"]))
+        # markdownify's strip=[...] only removes the tag itself, not its
+        # contents — a <script> survives as loose text, so a JS-heavy page
+        # (ad tech, consent stubs) leaks straight into the "clean" Markdown.
+        # Decompose script/style/noscript on a scratch soup before handing
+        # it off, instead of relying on strip= to do it.
+        scratch = BeautifulSoup(self.html or "", "lxml")
+        for tag in scratch(["script", "style", "noscript"]):
+            tag.decompose()
+        return _clean_markdown(markdownify(str(scratch)))
 
     def tokens(self, of: str | None = None) -> int:
         """Quick token estimate (~4 chars/token)."""

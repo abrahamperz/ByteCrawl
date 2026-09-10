@@ -651,22 +651,18 @@ function renderAnalysis(j) {
     <a class="badge badge-deep" href="/methods?url=${encodeURIComponent(j.url)}#advanced">${t("badge_deep")} →</a>
     ${tokens}
   </div>`;
-  // A long article converts to ~140k characters and pasting that into one
-  // <pre> locks the tab. Show the head only; copy and download below still
-  // hand over the whole thing, which is what people actually want it for.
   const full = j.sample_md || "";
-  const shown = full.length > 4000 ? full.slice(0, 4000) + "\n\n…" : full;
-  const cut = full.length > 4000
-    ? ` · ${t("md_first_of").replace("{n}", full.length.toLocaleString("en-US"))}`
+  const count = full
+    ? ` · ${t("md_char_count").replace("{n}", full.length.toLocaleString("en-US"))}`
     : "";
   const sample = j.sample_md
     ? `<div class="count-row">
-         <div class="count">${t("md_ready")}${cut}</div>
+         <div class="count">${t("md_ready")}${count}</div>
          <div class="dl-row">
            <button class="dl" onclick="copyMd(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>${t("md_copy")}</span></button>
            <button class="dl" onclick="downloadMd()">${t("md_download")}</button>
          </div>
-       </div><pre>${escapeHtml(shown)}</pre>`
+       </div><pre>${escapeHtml(full)}</pre>`
     : "";
   const why = `<div class="azr-why"><b>${t("why_q")}</b>${escapeHtml(j.why)}</div>`;
   out.innerHTML = `<div class="azr-steps">${steps}</div>${meta}${sample}${why}`;

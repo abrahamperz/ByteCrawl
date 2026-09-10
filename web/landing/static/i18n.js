@@ -107,7 +107,7 @@
       pm_cmp_head: "Same budget, three orderings — query:",
       pm_cmp_best: "Full ranking from the winner:",
       badge_title: "title", badge_links: "links",
-      md_ready: "Extracted Markdown · ready for an LLM", md_first_of: "showing first 4,000 of {n} chars", md_copy: "Copy .md", md_download: "↓ Download .md", why_q: "Why did it do that?",
+      md_ready: "Extracted Markdown · ready for an LLM", md_char_count: "{n} chars", md_copy: "Copy .md", md_download: "↓ Download .md", why_q: "Why did it do that?",
 
       d_grp_start: "Getting started", d_grp_api: "API reference", d_grp_guides: "Guides",
       d_install: "Install the library", d_quickstart: "Quickstart",
@@ -276,7 +276,7 @@
       pm_cmp_head: "Mismo presupuesto, tres órdenes — consulta:",
       pm_cmp_best: "Ranking completo del ganador:",
       badge_title: "título", badge_links: "enlaces",
-      md_ready: "Markdown extraído · listo para un LLM", md_first_of: "mostrando los primeros 4,000 de {n} caracteres", md_copy: "Copiar .md", md_download: "↓ Descargar .md", why_q: "¿Por qué hizo eso?",
+      md_ready: "Markdown extraído · listo para un LLM", md_char_count: "{n} caracteres", md_copy: "Copiar .md", md_download: "↓ Descargar .md", why_q: "¿Por qué hizo eso?",
 
       d_grp_start: "Para empezar", d_grp_api: "Referencia de API", d_grp_guides: "Guías",
       d_install: "Instalar la librería", d_quickstart: "Inicio rápido",
@@ -445,7 +445,7 @@
       pm_cmp_head: "Mesmo orçamento, três ordens — consulta:",
       pm_cmp_best: "Ranking completo do vencedor:",
       badge_title: "título", badge_links: "links",
-      md_ready: "Markdown extraído · pronto para um LLM", md_first_of: "mostrando os primeiros 4.000 de {n} caracteres", md_copy: "Copiar .md", md_download: "↓ Baixar .md", why_q: "Por que fez isso?",
+      md_ready: "Markdown extraído · pronto para um LLM", md_char_count: "{n} caracteres", md_copy: "Copiar .md", md_download: "↓ Baixar .md", why_q: "Por que fez isso?",
 
       d_grp_start: "Começando", d_grp_api: "Referência da API", d_grp_guides: "Guias",
       d_install: "Instalar a biblioteca", d_quickstart: "Início rápido",
