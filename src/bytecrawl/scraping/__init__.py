@@ -10,6 +10,6 @@ from __future__ import annotations
 from .page import Page
 from .scraper import Scraper
 from .session import Session
-from .url import normalize
+from .url import BlockedError, RateLimitError, normalize
 
-__all__ = ["Page", "Session", "Scraper", "normalize"]
+__all__ = ["Page", "Session", "Scraper", "normalize", "BlockedError", "RateLimitError"]

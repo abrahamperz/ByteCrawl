@@ -207,8 +207,13 @@
 
   /* live results under the bar */
   .hout { max-width: 620px; margin: 0 auto 22px; text-align: left; display: none; }
-  .hout.show { display: block; animation: ns-in .28s ease both; }
-  .hout-box { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); overflow: hidden; }
+  /* The fade lives on the box, not the container: innerHTML swaps replace the
+     box with a fresh node, so the animation re-runs on every render. Put it on
+     .hout.show instead and it fires once (empty -> loading) but not on the
+     loading -> result swap, so the result hard-pops in — the flicker. */
+  .hout.show { display: block; }
+  .hout-box { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); overflow: hidden;
+    animation: ns-in .22s ease both; }
   .hout-head { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border);
     font-size: 12px; color: var(--muted); background: var(--panel-2); }
   .hout-head .ok { color: var(--text); font-weight: 600; }
@@ -233,7 +238,14 @@
   .hout pre { padding: 14px 16px; margin: 0; white-space: pre-wrap; word-break: break-word;
     font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--code); }
   .hout .err { padding: 14px 16px; color: #b91c1c; font-size: 13px; }
-
+  /* bot-wall block: a calm notice, not an all-red shout */
+  .hout .block { display: flex; gap: 13px; padding: 16px; align-items: flex-start; }
+  .hout .block .ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fef2f2; color: #dc2626; }
+  .hout .block .ic svg { width: 17px; height: 17px; }
+  .hout .block .title { font-weight: 600; font-size: 13.5px; color: var(--text); margin-bottom: 3px; }
+  .hout .block .detail { font-size: 12.5px; line-height: 1.55; color: var(--muted-2); }
   .install {
     display: inline-flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 14px;
     background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 11px 18px;
@@ -769,6 +781,58 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
     hbarOut.classList.add('show');
   }
 
+  // A block is one calm card on its own — no URL header bar above it. The page
+  // link lives inside the card as a quiet secondary action.
+  function hbarCard(body) {
+    hbarOut.innerHTML = '<div class="hout-box">' + body + '</div>';
+    hbarOut.classList.add('show');
+  }
+
+  // A bot-wall block reads as a calm notice — shield icon, a title, and the
+  // rest in muted grey — rather than a wall of red. The message arrives as
+  // "Blocked by X — detail…", so split on the dash into title + detail.
+  function blockCard(d) {
+    const shield = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+    const parts = String(d.error || '').split(' — ');
+    const title = d.wall ? 'Blocked by ' + d.wall : (parts[0] || 'Blocked');
+    const detail = parts.length > 1 ? parts.slice(1).join(' — ') : '';
+    return '<div class="block"><div class="ic">' + shield + '</div><div>' +
+      '<div class="title">' + esc(title) + '</div>' +
+      (detail ? '<div class="detail">' + esc(detail) + '</div>' : '') +
+      '</div></div>';
+  }
+
+  // Seed URL we couldn't open (bad domain, 404, or two links pasted into one).
+  // Same calm card as a block, an alert-circle icon rather than the shield.
+  function unreachableCard() {
+    const alert = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>' +
+      '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    return '<div class="block"><div class="ic">' + alert + '</div><div>' +
+      '<div class="title">Couldn’t open that page</div>' +
+      '<div class="detail">The site didn’t respond — check the URL is real ' +
+      'or complete.</div>' +
+      '</div></div>';
+  }
+
+  // Seed reachable but throttling us (HTTP 429). Same calm card, a clock icon —
+  // a "wait and retry", not a dead page or a wall; show the Retry-After when we
+  // got one.
+  function rateLimitCard(d) {
+    const clock = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    const wait = d && d.retry_after ? ' (~' + d.retry_after + 's)' : '';
+    return '<div class="block"><div class="ic">' + clock + '</div><div>' +
+      '<div class="title">The site asked us to slow down</div>' +
+      '<div class="detail">It’s up and reachable — just rate-limiting requests ' +
+      '(HTTP 429). Wait a moment and try again.' + esc(wait) + '</div>' +
+      '</div></div>';
+  }
+
   // People paste URLs out of prose ("site.com · query: …"), so trim the
   // punctuation and stray words that ride along instead of failing on them.
   function cleanUrl(raw) {
@@ -792,6 +856,9 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
     try {
       const r = await fetch('/api?' + params.toString());
       const d = await r.json();
+      if (d.blocked) { hbarCard(blockCard(d)); return; }
+      if (d.rate_limited) { hbarCard(rateLimitCard(d)); return; }
+      if (d.unreachable) { hbarCard(unreachableCard()); return; }
       if (d.error) { hbarBox('<span>' + esc(url) + '</span>', '<div class="err">' + esc(d.error) + '</div>'); return; }
 
       const link = (href, label) =>

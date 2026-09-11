@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 # crawlers agree on what counts as a link; the crawler module re-exports it
 # because that is where the tests and docs import it from.
 from ..scraping.scraper import Scraper
-from ..scraping.url import normalize
+from ..scraping.url import BlockedError, RateLimitError, normalize
 from .frontier import Frontier, _root_domain
 from .result import CrawlResult
 from .text import relevance
@@ -81,6 +81,21 @@ class Crawler:
 
             try:
                 page = self.scraper.static(url)
+            except BlockedError as e:
+                # A single walled page shouldn't abort the crawl, but remember
+                # the first wall: if the crawl comes back empty, the caller can
+                # say "blocked" instead of the misleading "nothing relevant".
+                errors += 1
+                if result.blocked is None:
+                    result.blocked = e
+                continue
+            except RateLimitError as e:
+                # Likewise for a 429: keep crawling other pages, but remember the
+                # first throttle so an empty crawl reports "slow down and retry".
+                errors += 1
+                if result.rate_limited is None:
+                    result.rate_limited = e
+                continue
             except Exception:
                 errors += 1
                 continue

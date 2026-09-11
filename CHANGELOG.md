@@ -1,4 +1,41 @@
 # Changelog
+## 1.4.0 — 2026-09-11
+
+### Added
+- **A bot wall now says so.** When a site's protection refuses the fetch, the
+  error names the wall instead of a bare `403 Client Error: Forbidden` — e.g.
+  *"Blocked by Cloudflare — tapology.com uses bot protection and refused this
+  request (HTTP 403). Automated access isn't allowed."* Cloudflare, DataDome,
+  PerimeterX/HUMAN, Akamai and Imperva
+  Incapsula are recognised by their response headers and challenge-page markers.
+  A new `bytecrawl.BlockedError` (a subclass of `requests.HTTPError`) carries it,
+  so `except requests.HTTPError` still catches it and you can catch the block
+  specifically. Every surface benefits at once — the library, the crawlers, the
+  hosted API and the playground — since the detection lives at the fetch layer.
+  Detection is gated on a block-looking status, so a normal page served from
+  behind Cloudflare is never mislabelled.
+- **A rate limit now says so, too.** A genuine `HTTP 429 Too Many Requests`
+  (no bot-wall signature) no longer reads as "couldn't reach the site" — it gets
+  its own calm message: *"The site is rate-limiting us… it's up and reachable,
+  just asking for fewer requests. Wait a moment and try again."* A new
+  `bytecrawl.RateLimitError` (also a `requests.HTTPError` subclass) carries the
+  server's `Retry-After` when present — both forms, a delta in seconds and an
+  HTTP date. The hosted API answers `429` with a `Retry-After` header and a
+  `retry_after` field, and the playground shows a wait hint. A 429 that *does*
+  carry a bot-wall signature still reports as blocked — the more specific answer
+  wins.
+- **One error card everywhere.** Unreachable seeds (bad DNS, refused
+  connection, timeout) now raise a single `bytecrawl.UnreachableError` across the
+  library, crawlers, hosted API and playground, so every playground mode —
+  Markdown, links, JSON API, extract, auto and compare — renders the same card
+  for the same failure instead of three different-looking errors.
+- **MCP tools now tell the agent what went wrong.** A blocked, rate-limited or
+  unreachable seed used to reach an MCP client as a masked *"Error executing
+  tool …"* — the SDK treats a stray `requests` exception as a crash and withholds
+  its text. Every tool (local and hosted) now re-raises these as a `ToolError`,
+  so the agent receives the real message — the wall's name, or the wait hint for
+  a 429 — the MCP counterpart of the API's typed 403/429 body.
+
 ## 1.3.0 — 2026-09-11
 
 ### Changed

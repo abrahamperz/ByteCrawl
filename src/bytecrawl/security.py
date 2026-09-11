@@ -11,6 +11,8 @@ import ipaddress
 import socket
 from urllib.parse import urlparse
 
+from .scraping.url import UnreachableError
+
 
 def assert_public_url(url: str) -> None:
     """Reject URLs that could reach private infrastructure.
@@ -18,6 +20,15 @@ def assert_public_url(url: str) -> None:
     Resolves the hostname and requires every returned address to be globally
     routable. Blocks localhost, RFC1918 ranges, link-local (cloud metadata
     endpoints like 169.254.169.254) and other reserved space.
+
+    A host that doesn't resolve isn't a security refusal — it just can't be
+    reached — so it raises :class:`UnreachableError` (the same exception a
+    failed fetch would), not ``ValueError``. That way an unresolvable or
+    mistyped domain gets the one shared "couldn't open that page" answer
+    across every surface, instead of a raw "Cannot resolve host" on the one
+    path that happens to pre-check. The genuine refusals — a non-http(s)
+    scheme, a missing hostname, or an address that resolves into private
+    space — stay ``ValueError``.
     """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
@@ -28,7 +39,7 @@ def assert_public_url(url: str) -> None:
     try:
         infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
     except socket.gaierror as e:
-        raise ValueError(f"Cannot resolve host: {host}") from e
+        raise UnreachableError(url=url) from e
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if not ip.is_global or ip.is_multicast:
