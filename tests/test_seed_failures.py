@@ -240,34 +240,42 @@ class TestCorePrimitives:
 # --------------------------------------------------------------------------- #
 # MCP tools: every tool raises the right seed error.
 # --------------------------------------------------------------------------- #
-# Guard on the exact submodule these tests import, not the top-level `mcp`
-# package: on Python 3.9 (CI installs no mcp extra there) a shallow `mcp` can be
-# importable without `mcp.server`, so importorskip("mcp") would pass and then the
-# line below would ImportError at collection. Naming the submodule skips the
-# module cleanly instead, the way the sibling MCP test files do.
-pytest.importorskip("mcp.server.mcpserver.exceptions")
-from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError  # noqa: E402
+# Only this block needs the `mcp` SDK (the mcp extra, Python 3.10+); the core
+# tests above and the /api tests below need Flask, not mcp. Import the SDK
+# softly and gate just the MCP tests with `requires_mcp`, so a run without the
+# mcp extra (e.g. Python 3.9 CI) still collects and runs everything else instead
+# of the whole module aborting on a module-level importorskip.
+try:
+    from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError
 
-from bytecrawl import mcp_server  # noqa: E402
+    from bytecrawl import mcp_server
+
+    _HAS_MCP = True
+except ImportError:
+    _HAS_MCP = False
+
+requires_mcp = pytest.mark.skipif(not _HAS_MCP, reason="mcp extra not installed (Python 3.10+)")
 
 
 @pytest.fixture(autouse=True)
 def _no_delay():
-    """The module-level scraper shouldn't sleep in tests."""
-    mcp_server._scraper.delay = 0.0
+    """The module-level MCP scraper shouldn't sleep in tests."""
+    if _HAS_MCP:
+        mcp_server._scraper.delay = 0.0
     yield
 
 
-# (tool callable, kwargs) for each of the six tools. Single-fetch tools and
-# crawl tools reach the seed by different code paths (_open vs raise_for_seed);
-# both must land on the same two exceptions.
+# (tool name, kwargs) for each of the six tools, resolved against mcp_server
+# inside the test so this list imports without the mcp extra. Single-fetch tools
+# and crawl tools reach the seed by different code paths (_open vs
+# raise_for_seed); both must land on the same two exceptions.
 MCP_TOOLS = [
-    (mcp_server.fetch_markdown, {}),
-    (mcp_server.extract, {}),
-    (mcp_server.list_links, {}),
-    (mcp_server.fetch_json_api, {}),
-    (mcp_server.focused_crawl, {"query": "x", "max_pages": 3}),
-    (mcp_server.compare_strategies, {"query": "x", "max_pages": 3}),
+    ("fetch_markdown", {}),
+    ("extract", {}),
+    ("list_links", {}),
+    ("fetch_json_api", {}),
+    ("focused_crawl", {"query": "x", "max_pages": 3}),
+    ("compare_strategies", {"query": "x", "max_pages": 3}),
 ]
 
 
@@ -275,31 +283,35 @@ MCP_TOOLS = [
 # it to the agent as an is_error result carrying our message (a bare requests
 # exception would be a crash, masked to "Error executing tool <name>"). The
 # typed seed error is preserved as __cause__, so the classification still holds.
-@pytest.mark.parametrize("tool, kw", MCP_TOOLS)
-def test_mcp_tool_reports_blocked_on_a_walled_seed(http, tool, kw):
+@requires_mcp
+@pytest.mark.parametrize("tool_name, kw", MCP_TOOLS)
+def test_mcp_tool_reports_blocked_on_a_walled_seed(http, tool_name, kw):
     http.routes[SEED] = _walled()
     with pytest.raises(ToolError) as exc:
-        tool(SEED, **kw)
+        getattr(mcp_server, tool_name)(SEED, **kw)
     assert isinstance(exc.value.__cause__, BlockedError)
 
 
-@pytest.mark.parametrize("tool, kw", MCP_TOOLS)
-def test_mcp_tool_reports_unreachable_on_a_dead_seed(http, tool, kw):
+@requires_mcp
+@pytest.mark.parametrize("tool_name, kw", MCP_TOOLS)
+def test_mcp_tool_reports_unreachable_on_a_dead_seed(http, tool_name, kw):
     http.routes[SEED] = _dead()
     with pytest.raises(ToolError) as exc:
-        tool(SEED, **kw)
+        getattr(mcp_server, tool_name)(SEED, **kw)
     assert isinstance(exc.value.__cause__, UnreachableError)
 
 
-@pytest.mark.parametrize("tool, kw", MCP_TOOLS)
-def test_mcp_tool_reports_rate_limit_on_a_throttled_seed(http, tool, kw):
+@requires_mcp
+@pytest.mark.parametrize("tool_name, kw", MCP_TOOLS)
+def test_mcp_tool_reports_rate_limit_on_a_throttled_seed(http, tool_name, kw):
     http.routes[SEED] = _throttled()
     with pytest.raises(ToolError) as exc:
-        tool(SEED, **kw)
+        getattr(mcp_server, tool_name)(SEED, **kw)
     assert isinstance(exc.value.__cause__, RateLimitError)
     assert "retry after ~30s" in str(exc.value)  # the wait folds into the text
 
 
+@requires_mcp
 @pytest.mark.parametrize(
     "route, needle",
     [
@@ -421,6 +433,7 @@ def test_api_walled_429_is_blocked_not_rate_limited(client, http):
     assert body["wall"] == "Cloudflare"
 
 
+@requires_mcp
 def test_api_walled_and_mcp_walled_agree(client, http):
     """The contract in one place: the same walled seed, the tool and the
     endpoint, the same named wall — one raised (as a ToolError wrapping the
