@@ -165,6 +165,12 @@
   .hbar-top input { flex: 1; border: 0; outline: none; font: inherit; font-size: 15px; color: var(--text); background: none; }
   .hbar-top input::placeholder { color: var(--muted); }
   .hbar-bot { display: flex; align-items: center; gap: 4px; padding: 9px 10px; }
+  /* Desktop: the More wrapper and its menu are display:contents and the toggle
+     is hidden, so all five pills flow inline exactly as before. The mobile block
+     (820px) turns .hmore into a real dropdown that hides the last three modes. */
+  .hmore { display: contents; }
+  .hmore-btn { display: none; }
+  .hmore-menu { display: contents; }
   .hmode { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: none;
     font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 7px 13px;
     border-radius: 9px; cursor: pointer; transition: .15s; }
@@ -400,6 +406,39 @@
     .cta { flex-direction: column; align-items: stretch; gap: 10px; }
     .setup { width: 100%; justify-content: center; padding: 14px 20px; white-space: nowrap; }
     .hbar { margin-bottom: 18px; border-radius: 14px; }
+    /* Five mode pills don't fit one phone-width row, so the last three collapse
+       behind a "More ▾" pill: the row becomes Crawl · Markdown · More ▾ · arrow,
+       one clean line with the arrow pinned right (margin-left:auto). .hmore turns
+       from display:contents into a real inline box that anchors the popover. */
+    .hmore { display: inline-flex; position: relative; }
+    .hmore-btn { display: inline-flex; align-items: center; gap: 7px;
+                 border: 1px solid transparent; background: none; font-family: inherit;
+                 font-size: 13px; font-weight: 500; color: var(--muted); padding: 7px 11px;
+                 border-radius: 9px; cursor: pointer; transition: .15s; }
+    .hmore-btn .hdot { width: 6px; height: 6px; border-radius: 50%;
+                       background: var(--border-2); transition: background .15s; }
+    .hmore-caret { width: 13px; height: 13px; fill: none; stroke: currentColor;
+                   stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+                   transition: transform .15s; }
+    /* When one of the hidden modes is active the pill lights up like a real
+       .hmode.active and shows that mode's name (set from JS). */
+    .hmore-btn.active { background: #fff; border-color: var(--border); color: var(--text);
+                        font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+    .hmore-btn.active .hdot { background: var(--accent); }
+    .hmore.open .hmore-caret { transform: rotate(180deg); }
+    /* The popover: the three hidden pills stacked, floating above the bar so it
+       never pushes the layout. display:contents off, real flex column on. */
+    .hmore-menu { display: none; position: absolute; bottom: calc(100% + 6px); left: 0;
+                  flex-direction: column; gap: 2px; padding: 6px; min-width: 148px;
+                  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+                  box-shadow: 0 12px 28px rgba(0,0,0,.16); z-index: 20; }
+    .hmore.open .hmore-menu { display: flex; }
+    .hmore-menu .hmode { justify-content: flex-start; width: 100%; }
+    #hbar-go { margin-left: auto; }
+    /* The nowrap hint runs long in Extract ("CSS selector — or leave empty…")
+       and spilled past the bar on a phone. Drop the secondary hint on mobile;
+       the field itself still shows what to type. */
+    .hbar-hint { display: none; }
     .demo, .features, .eco { grid-template-columns: 1fr; }
     /* minmax(0, …) rather than 1fr: a bare 1fr will not shrink below its
        content's minimum, and that minimum is the `compare_strategies` chip —
@@ -469,9 +508,20 @@
       <div class="hbar-bot">
         <button class="hmode active" data-hmode="crawl"><span class="hdot"></span>Crawl</button>
         <button class="hmode" data-hmode="markdown"><span class="hdot"></span>Markdown</button>
-        <button class="hmode" data-hmode="links"><span class="hdot"></span>Links</button>
-        <button class="hmode" data-hmode="json"><span class="hdot"></span>JSON</button>
-        <button class="hmode" data-hmode="extract"><span class="hdot"></span>Extract</button>
+        <!-- On phones the last three modes collapse behind this "More" menu so the
+             row stays one clean line. On desktop .hmore is display:contents and the
+             button is hidden, so Links/JSON/Extract sit inline exactly as before. -->
+        <div class="hmore">
+          <button class="hmore-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="hdot"></span><span class="hmore-label" data-i18n="hbar_more">Other</span>
+            <svg class="hmore-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="hmore-menu">
+            <button class="hmode" data-hmode="links"><span class="hdot"></span>Links</button>
+            <button class="hmode" data-hmode="json"><span class="hdot"></span>JSON</button>
+            <button class="hmode" data-hmode="extract"><span class="hdot"></span>Extract</button>
+          </div>
+        </div>
         <button id="hbar-go" aria-label="Go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M12.5 6l6 6-6 6"/></svg></button>
       </div>
     </div>
@@ -816,10 +866,37 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
     const cur = hbarInput.value.trim();
     if (want && (!cur || HBAR_URL_OURS.has(cur))) hbarInput.value = want;
   }
+  // The "More ▾" dropdown only exists on mobile (on desktop it is
+  // display:contents and its button is hidden). It hides Links/JSON/Extract;
+  // the pill mirrors whichever of those is active so the choice stays visible.
+  const hmore      = document.querySelector('.hmore');
+  const hmoreBtn   = document.querySelector('.hmore-btn');
+  const hmoreLabel = document.querySelector('.hmore-label');
+  const hmoreMenu  = document.querySelector('.hmore-menu');
+  const closeMore = () => { hmore.classList.remove('open'); hmoreBtn.setAttribute('aria-expanded', 'false'); };
+  function syncMore() {
+    const active = document.querySelector('.hmode.active');
+    const inMenu = !!(active && hmoreMenu.contains(active));
+    hmoreBtn.classList.toggle('active', inMenu);
+    // Show the hidden mode's own label when picked, else fall back to "More".
+    hmoreLabel.textContent = inMenu ? active.textContent.trim() : tr('hbar_more', 'Other');
+  }
+  hmoreBtn.addEventListener('click', (e) => {
+    e.stopPropagation();   // don't let the document handler close it right back
+    const open = hmore.classList.toggle('open');
+    hmoreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', (e) => { if (!hmore.contains(e.target)) closeMore(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMore(); });
+  // Keep the pill's label right across language switches.
+  document.addEventListener('bc:lang', syncMore);
+
   document.querySelectorAll('.hmode').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.hmode').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
+      closeMore();
+      syncMore();
       syncHbarUrl();
       syncHbarExtra();
       // The old answer belongs to the old mode — drop it instead of leaving
@@ -829,6 +906,7 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
     });
   });
   syncHbarExtra();
+  syncMore();
 
   function hbarBox(head, body) {
     hbarOut.innerHTML = '<div class="hout-box"><div class="hout-head">' + head +
