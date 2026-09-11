@@ -35,7 +35,7 @@ TECHNIQUES = {
         "site": "quotes.toscrape.com",
         "description": "Hundreds of pages: walk a 'next' chain, or let BFS / Shark-Search / OPIC "
                        "order a whole site under a request budget.",
-        "api": "?method=crawl&query=san+francisco",
+        "api": "?method=crawl&query=books",
     },
     "login": {
         "title": "5 · API with login",
@@ -51,6 +51,27 @@ TECHNIQUES = {
         "api": "?method=markdown",
         "description": "Turns noisy HTML into clean Markdown: same info, a fraction of the tokens.",
     },
+}
+
+
+# Worked examples behind the two live demos: the hero bar on "/" and the
+# playground on "/playground". Both pages read from this one dict (injected as
+# JSON into each template) so an example URL or query is edited in exactly one
+# place and the two pages can never drift apart again.
+#
+# Keys are the playground's mode names. The hero bar only has Crawl and
+# Markdown, so it uses "crawl" and "markdown"; the other three are
+# playground-only. "query" is the focused-crawl topic (crawl) or the CSS
+# selector (extract); "hint" is the i18n key for the hint under the playground's
+# extra field. URLs carry their scheme; the hero strips it for display.
+DEMO_EXAMPLES = {
+    "crawl":    {"url": "https://en.wikipedia.org/wiki/Python_programming_language",
+                 "query": "web framework", "hint": "pm_hint_crawl"},
+    "markdown": {"url": "https://docs.python.org/3/tutorial/introduction.html"},
+    "links":    {"url": "https://news.ycombinator.com/"},
+    "json":     {"url": "https://data.sfgov.org/resource/wg3w-h783.json?$limit=5"},
+    "extract":  {"url": "https://books.toscrape.com/",
+                 "query": "h3 a::attr(title)", "hint": "pm_hint_extract"},
 }
 
 

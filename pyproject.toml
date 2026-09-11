@@ -29,7 +29,10 @@ browser = ["playwright>=1.40"]
 llm = ["markdownify>=0.11", "trafilatura>=1.6"]
 mcp = ["mcp>=2; python_version >= '3.10'", "markdownify>=0.11", "trafilatura>=1.6"]
 all = ["playwright>=1.40", "markdownify>=0.11", "trafilatura>=1.6", "mcp>=2; python_version >= '3.10'"]
-dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "bandit"]
+# flask/python-dotenv/posthog are here (not runtime deps of the library) so the
+# test suite can import the web landing app and exercise the /api seed-error
+# surface. Kept in sync with web/landing/requirements.txt.
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "bandit", "flask", "python-dotenv", "posthog"]
 
 [project.scripts]
 bytecrawl-mcp = "bytecrawl.mcp_server:main"

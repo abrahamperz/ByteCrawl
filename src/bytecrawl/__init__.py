@@ -22,7 +22,17 @@ Comparing them:       compare(url, query) -> the three side by side
 LLM:                  page.markdown() · page.tokens()
 """
 
-from .core import Page, Scraper, Session
+from .core import (
+    RATE_LIMIT_MESSAGE,
+    UNREACHABLE_MESSAGE,
+    BlockedError,
+    Page,
+    RateLimitError,
+    Scraper,
+    Session,
+    UnreachableError,
+    open_seed,
+)
 from .crawler import (
     BFS,
     OPIC,
@@ -39,6 +49,12 @@ __all__ = [
     "Scraper",
     "Page",
     "Session",
+    "BlockedError",
+    "RateLimitError",
+    "UnreachableError",
+    "RATE_LIMIT_MESSAGE",
+    "UNREACHABLE_MESSAGE",
+    "open_seed",
     "Crawler",
     "BFS",
     "SharkSearch",
@@ -49,4 +65,4 @@ __all__ = [
     "cosine",
     "compare",
 ]
-__version__ = "1.3.0"
+__version__ = "1.4.0"

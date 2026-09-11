@@ -4,18 +4,25 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
+from ..scraping.url import BlockedError, RateLimitError, UnreachableError
 from .strategies import STRATEGIES
 
 
 def _leg(
     name: str, start: str, query: str, max_pages: int, max_depth: int, delay: float, timeout: int
 ) -> dict:
-    """One strategy's leg of a comparison. Never raises: a strategy that fails
-    reports inside its own entry so the other two still come back."""
+    """One strategy's leg of a comparison. A strategy that fails on its own
+    reports inside its own entry so the other two still come back — but a
+    seed-level failure (a walled or unreachable start URL) is not that: it
+    fails every leg identically, so re-raise it and let :func:`compare` surface
+    it once instead of burying three copies in three error strings."""
     try:
         result = STRATEGIES[name](query=query, delay=delay, timeout=timeout).crawl(
             start, max_pages=max_pages, max_depth=max_depth
         )
+        result.raise_for_seed()
+    except (BlockedError, RateLimitError, UnreachableError):
+        raise
     except Exception as e:
         return {"error": f"{type(e).__name__}: {e}"}
     return {

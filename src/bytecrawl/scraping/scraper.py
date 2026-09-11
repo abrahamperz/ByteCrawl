@@ -14,7 +14,7 @@ import requests
 from .page import Page
 from .selectors import _split_selector, _value_from
 from .session import Session
-from .url import DEFAULT_UA, _decoded_html
+from .url import DEFAULT_UA, _decoded_html, _raise_for_status
 
 
 class Scraper:
@@ -32,7 +32,7 @@ class Scraper:
         """Technique 1: static HTML with requests."""
         t0 = time.perf_counter()
         r = self._session.get(url, timeout=self.timeout)
-        r.raise_for_status()
+        _raise_for_status(r)
         self._wait()
         return Page(
             url=url,
@@ -46,7 +46,7 @@ class Scraper:
         """Technique 3: requests an API and stores the JSON."""
         t0 = time.perf_counter()
         r = self._session.get(url, params=params, timeout=self.timeout)
-        r.raise_for_status()
+        _raise_for_status(r)
         self._wait()
         try:
             data = r.json()

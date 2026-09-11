@@ -14,7 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .page import Page
-from .url import _decoded_html
+from .url import _decoded_html, _raise_for_status
 
 if TYPE_CHECKING:
     from .scraper import Scraper
@@ -32,13 +32,13 @@ class Session:
         """Logs in. If csrf_field is given, reads it from the form first."""
         if csrf_field:
             r = self._s.get(url, timeout=self._scraper.timeout)
-            r.raise_for_status()
+            _raise_for_status(r)
             form = BeautifulSoup(_decoded_html(r), "lxml")
             token = form.select_one(f'input[name="{csrf_field}"]')
             if token:
                 data = {**data, csrf_field: token.get("value", "")}
         r = self._s.post(url, data=data, timeout=self._scraper.timeout)
-        r.raise_for_status()
+        _raise_for_status(r)
         return self
 
     def bearer(self, token: str) -> Session:
@@ -48,7 +48,7 @@ class Session:
     def fetch(self, url: str) -> Page:
         t0 = time.perf_counter()
         r = self._s.get(url, timeout=self._scraper.timeout)
-        r.raise_for_status()
+        _raise_for_status(r)
         return Page(
             url=url,
             html=_decoded_html(r),

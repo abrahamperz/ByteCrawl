@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 import time
 
-from bytecrawl import Scraper
+from bytecrawl import BlockedError, RateLimitError, Scraper, UnreachableError, open_seed
 from bytecrawl.crawler import STRATEGIES as CRAWL_STRATEGIES
 from bytecrawl.crawler import compare, pagerank
 from bytecrawl.security import assert_public_url  # re-exported for the routes
@@ -80,7 +80,25 @@ def analyze_url(url: str, lang: str) -> tuple[dict, int, dict | None]:
     bot = Scraper(timeout=20)
     steps = []
     try:
-        page = bot.static(url)
+        # open_seed is the shared classifier: a bot wall stays a BlockedError,
+        # and anything else that stopped the page loading (a domain that doesn't
+        # resolve, a refused connection, a 404) becomes UnreachableError. Without
+        # it, 'auto' was the one surface that dressed a dead seed as a raw
+        # requests traceback while /api?method=links gave the friendly card.
+        page = open_seed(lambda: bot.static(url))
+    except BlockedError as e:
+        return {"ok": False, "error": str(e), "blocked": True, "wall": e.wall}, 403, None
+    except RateLimitError as e:
+        # Reachable but throttled (429): the same `rate_limited` flag and
+        # Retry-After every surface gives, so the frontend renders the calm
+        # "slow down and retry" card off the flag, not the raw error string.
+        return {"ok": False, "error": str(e), "rate_limited": True,
+                "retry_after": e.retry_after}, 429, None
+    except UnreachableError as e:
+        # The seed never opened — the same "couldn't open that page" answer, and
+        # the same `unreachable` flag, every other surface gives, so the frontend
+        # renders the calm card off the flag instead of the raw error string.
+        return {"ok": False, "error": str(e), "unreachable": True}, 200, None
     except Exception as e:
         return {"ok": False, "error": tr["download_err"].format(e=e)}, 200, None
 
@@ -165,6 +183,22 @@ def run_crawl(url: str, strategy: str, query: str) -> tuple[dict, int, dict | No
     except Exception as e:
         return {"ok": False, "error": f"crawl failed: {e}"}, 200, None
 
+    if result.blocked is not None and not result.pages:
+        return {"ok": False, "error": str(result.blocked),
+                "blocked": True, "wall": result.blocked.wall}, 403, None
+
+    if result.rate_limited is not None and not result.pages:
+        # Seed throttled: say "slow down and retry", carrying the wait, instead
+        # of a hollow "0 relevant".
+        return {"ok": False, "error": str(result.rate_limited),
+                "rate_limited": True,
+                "retry_after": result.rate_limited.retry_after}, 429, None
+
+    if result.unreachable:
+        # Seed unreachable: say so plainly instead of a hollow "0 relevant".
+        return {"ok": False, "unreachable": True,
+                "error": "Couldn't open that page."}, 200, None
+
     pr = pagerank(result.graph)
     props = {"strategy": strategy, **result.stats}
     payload = {
@@ -181,31 +215,33 @@ def run_api_method(method: str, url: str, src) -> dict:
     """Dispatch one /api call to ByteCrawl and return its payload dict.
 
     ``src`` is the request's arg/form mapping (anything with ``.get``). Bad
-    input raises ValueError (the route maps it to 400); everything else
-    propagates for the route to turn into a 502.
+    input raises ValueError (the route maps it to 400); a walled seed raises
+    BlockedError (403) and an unopenable one UnreachableError (502), the same
+    across every method; anything else propagates for the route to turn into a
+    502.
     """
     bot = Scraper(timeout=15)
     if method in ("markdown", "md"):
-        page = bot.static(url)
+        page = open_seed(lambda: bot.static(url))
         return {"url": url, "method": "markdown",
                 "markdown": page.markdown(),
                 "tokens": page.tokens(page.markdown())}
     if method == "text":
-        page = bot.static(url)
+        page = open_seed(lambda: bot.static(url))
         return {"url": url, "method": "text",
                 "text": page.soup.get_text(" ", strip=True)}
     if method == "html":
-        page = bot.static(url)
+        page = open_seed(lambda: bot.static(url))
         return {"url": url, "method": "html", "html": page.html}
     if method == "links":
-        page = bot.static(url)
+        page = open_seed(lambda: bot.static(url))
         return {"url": url, "method": "links", "links": page.links()}
     if method == "json":
-        page = bot.api(url)
+        page = open_seed(lambda: bot.api(url))
         return {"url": url, "method": "json", "data": page.json()}
     if method == "extract":
         select = (src.get("select") or "").strip()
-        page = bot.static(url)
+        page = open_seed(lambda: bot.static(url))
         if not select:
             # No selector is not an error, it is the question before it:
             # "what can I pull off this page?" Answering with the repeated
@@ -225,6 +261,10 @@ def run_api_method(method: str, url: str, src) -> dict:
             pages = API_MAX_PAGES
         crawler = CRAWL_STRATEGIES[strategy](query=query, delay=0.0, timeout=8)
         result = crawler.crawl(url, max_pages=pages, max_depth=4)
+        # A walled seed raises the block (403); an unreachable one raises
+        # UnreachableError (502). Either way the route reports it plainly
+        # rather than letting an empty crawl read as "nothing relevant".
+        result.raise_for_seed()
         ranked = result.top(pages) if query else result.pages
         return {"url": url, "method": "crawl", "strategy": strategy,
                 "query": query, "stats": result.stats, "pages": ranked}

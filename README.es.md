@@ -10,8 +10,8 @@ Shark-Search y OPIC en Python puro.
 - **Web**: https://bytecrawl.vercel.app/
 - **Endpoint MCP hosteado**: https://bytecrawl.vercel.app/mcp
 - **Skill para agentes**: https://bytecrawl.vercel.app/agent-onboarding/SKILL.md
-- **Última versión**: **1.3.0** — publicación automática a PyPI y checks de CI
-  separados (lint, formato, tipos, seguridad) ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
+- **Última versión**: **1.4.0** — errores más claros cuando la protección
+  anti-bot de un sitio (Cloudflare, DataDome, …) bloquea el fetch ([changelog](https://github.com/abrahamperz/ByteCrawl/blob/main/CHANGELOG.md))
 - **PyPI**: https://pypi.org/project/bytecrawl/
 - **GitHub**: https://github.com/abrahamperz/ByteCrawl
 

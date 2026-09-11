@@ -56,7 +56,13 @@
   }
   footer { margin-top: auto; }
   a { color: inherit; text-decoration: none; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  /* width:100% matters for the analyzer's .wrap, which is a direct child of the
+     flex-column body: a flex item with `margin:0 auto` shrinks to its content
+     (max-width only caps it), so the card was narrow at idle and jumped wider
+     once the compare grid rendered. A definite width makes it fill the centred
+     1100px column at every state. No-op for the nav/header/footer .wraps, which
+     are ordinary blocks and already fill their width. */
+  .wrap { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
   /* NAV */
   nav { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.75); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
@@ -98,15 +104,27 @@
   .btn:hover { background: #27272a; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   /* gap, not a literal space: flex makes each text run its own item and eats
-     the whitespace between them, which is why the ✓ sat flush against the label.
+     the whitespace between them, so the spinner and label lean on the row gap.
      The heights here are deliberately integers: with line-height 1.5 the chip's
      content box was 19.5px, so centring it in the flex row put its text on a
      half-pixel and the digits rendered blurry. 20px row, 18px chip line, even
      padding — everything lands on whole pixels. */
   .status { font-size: 14px; line-height: 20px; margin: 12px 0 0; min-height: 26px; display: flex; align-items: center; gap: 6px; }
+  /* An emptied status reserves nothing: at idle, and after a block clears the
+     line, the result (or the input) sits flush instead of under 38px of blank
+     row. Any real status text or spinner switches it straight back on. */
+  .status:empty { min-height: 0; margin: 0; }
   .status.run { color: var(--muted); }
   .status.ok { color: var(--accent); font-weight: 600; }
   .status.err { color: var(--red); }
+  /* bot-wall block: a calm full-width notice, same shape as the home hero */
+  .azr-block { display: flex; gap: 13px; padding: 16px; margin-top: 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+  .azr-block .ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; background: #fef2f2; color: #dc2626; }
+  .azr-block .ic svg { width: 17px; height: 17px; }
+  .azr-block .title { font-weight: 600; font-size: 13.5px; color: var(--text); margin-bottom: 3px; }
+  .azr-block .detail { font-size: 12.5px; line-height: 1.55; color: var(--muted-2); }
   .time { margin-left: 2px; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .result { margin-top: 14px; display: none; }
   .result.show { display: block; }
@@ -199,7 +217,12 @@
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .azr-out { margin-top: 18px; display: none; }
-  .azr-out.show { display: block; }
+  /* A spinner runs in the status row while loading and the output stays empty,
+     so the result comes in cold — fade it in instead of a hard pop, the same
+     gentle entrance the landing's output card uses. The load path clears the
+     'show' class (out is emptied), so re-adding it on the result re-runs this. */
+  .azr-out.show { display: block; animation: azr-in .22s ease both; }
+  @keyframes azr-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   .azr-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
   .azr-step { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--panel); }
   .azr-step .st { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--accent); }
@@ -303,8 +326,8 @@
            mode's entry in PM_DEFAULTS (crawl) so the field doesn't change
            under the visitor on load. -->
       <input id="azr-url" class="azr-input" type="text"
-             value="https://en.wikipedia.org/wiki/Silicon_Valley"
-             placeholder="https://en.wikipedia.org/wiki/Silicon_Valley"
+             value="{{ demos.crawl.url }}"
+             placeholder="{{ demos.crawl.url }}"
              onkeydown="if(event.key==='Enter')analyze()">
       <button id="azr-btn" class="btn" onclick="analyze()" data-i18n="analyze_btn">Run</button>
     </div>
@@ -324,11 +347,15 @@
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
+// Live-demo examples, shared with the home hero (DEMO_EXAMPLES in content.py).
+window.DEMOS = {{ demos | tojson }};
+
 // --- method selector: Markdown explains the strategy, the rest hit /api ---
 // One URL field feeds six methods, so no single default works for all of
-// them: a book-grid CSS selector means nothing on a JSON endpoint, and a
-// toy quotes site shows nothing interesting for a focused crawl. Each mode
-// carries its own working example instead.
+// them: a book-grid CSS selector means nothing on a JSON endpoint. Each mode
+// carries its own working example, and they come from DEMO_EXAMPLES in
+// content.py (shared with the home hero) via window.DEMOS — so the examples
+// live in one place and the two pages can't drift apart.
 //
 // Markdown runs /analyze rather than /api?method=markdown: it returns the
 // same conversion plus the routing steps and the token count it saved, so
@@ -336,19 +363,19 @@
 //
 // Graph crawl runs all three strategies on the same budget instead of just
 // one. A single ordering looks like any other crawler; run side by side on
-// Wikipedia + "san francisco" it is 20/20 relevant pages for Shark-Search
-// against 1/20 for BFS, which is the whole reason the frontier strategies
-// are in here. The winner's ranked pages are shown below the comparison, so
-// nothing the single-strategy mode used to show is lost.
-// Listed in chip order; the first entry is the landing mode.
+// quotes.toscrape.com + "books", Shark-Search walks straight into the /books
+// tag pages while BFS wanders the other tags — which is the whole reason the
+// frontier strategies are in here. The winner's ranked pages are shown below
+// the comparison, so nothing the single-strategy mode used to show is lost.
+// Listed in chip order; the first entry is the landing mode. "auto" is the
+// playground's name for Markdown, so it reads DEMOS.markdown.
+const DEMOS = window.DEMOS || {};
 const PM_DEFAULTS = {
-  crawl:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley',
-              ph: 'san francisco', hint: 'pm_hint_crawl' },
-  auto:     { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
-  links:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
-  json:     { url: 'https://data.sfgov.org/resource/wg3w-h783.json?$limit=5' },
-  extract:  { url: 'https://books.toscrape.com/',
-              ph: 'h3 a::attr(title)', hint: 'pm_hint_extract' },
+  crawl:    { url: DEMOS.crawl.url,   ph: DEMOS.crawl.query,   hint: DEMOS.crawl.hint },
+  auto:     { url: DEMOS.markdown.url },
+  links:    { url: DEMOS.links.url },
+  json:     { url: DEMOS.json.url },
+  extract:  { url: DEMOS.extract.url, ph: DEMOS.extract.query, hint: DEMOS.extract.hint },
 };
 // Swapping defaults on mode change is only safe while the field still holds
 // one of ours; anything else is the visitor's own input and must survive.
@@ -400,10 +427,19 @@ document.addEventListener('bc:lang', pmFitHint);
 window.addEventListener('resize', pmFitHint);
 document.querySelectorAll('.azr-mode').forEach(b => {
   b.addEventListener('click', () => {
+    // A run is still in flight and you're leaving for another mode: ask, and if
+    // you confirm, abort it so it actually stops instead of finishing unseen.
+    if (pmAbort && b.dataset.mode !== pmMode()) {
+      if (!confirm(t('pm_stop_confirm'))) return;
+      pmAbort.abort();
+    }
     document.querySelectorAll('.azr-mode').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     pmSyncExtra();
-    document.getElementById('azr-out').innerHTML = '';
+    // Drop .show so the emptied box collapses instead of holding the reserved
+    // height as a blank gap after switching away from a result.
+    const o = document.getElementById('azr-out');
+    o.className = 'azr-out'; o.innerHTML = '';
     document.getElementById('azr-status').textContent = '';
   });
 });
@@ -494,16 +530,20 @@ function pmRelevant(r) {
 // independent, so there is no reason to hold the first result hostage to the
 // slowest one — a card is painted as soon as its own strategy lands.
 function pmCard(r, seedHost, isBest) {
+  // A stable id per strategy so a card can be swapped in place as its own
+  // request lands, without re-rendering (and restarting the spinners of) the
+  // two cards beside it.
+  const id = `cmp-card-${r.strategy}`;
   const head = `<div class="cmp-head"><b>${r.strategy.toUpperCase()}</b>` +
     `${isBest ? ' <span class="cmp-badge">best</span>' : ''}</div>`;
   if (r.state === 'pending') {
-    return `<div class="cmp-card cmp-idle">${head}` +
+    return `<div class="cmp-card cmp-idle" id="${id}">${head}` +
       `<div class="cmp-nums"><span><span class="spinner"></span>${pmEscape(t('pm_cmp_running'))}</span></div></div>`;
   }
   if (r.state === 'err') {
     // One strategy failing is not a reason to blank the other two, so the error
     // stays inside its own card.
-    return `<div class="cmp-card cmp-idle">${head}` +
+    return `<div class="cmp-card cmp-idle" id="${id}">${head}` +
       `<div class="cmp-nums cmp-fail"><span>✗ ${pmEscape(r.error || 'failed')}</span></div></div>`;
   }
   // Every page listed is a page you can go read — the top 3 here are clickable
@@ -513,42 +553,61 @@ function pmCard(r, seedHost, isBest) {
     `<tr><td title="${pmEscape(p.url)}">${pmLink(p.url, pmShort(p.url, seedHost))}</td>` +
     `<td style="text-align:right;font-family:var(--mono)">${(p.relevance || 0).toFixed(3)}</td></tr>`).join('');
   const avg = (r.stats.avg_relevance ?? 0).toFixed(3);
-  return `<div class="cmp-card${isBest ? ' cmp-win' : ''}">${head}
+  return `<div class="cmp-card${isBest ? ' cmp-win' : ''}" id="${id}">${head}
     <div class="cmp-nums"><span>${pmRelevant(r)} ${pmEscape(t('adv_relevant'))}</span><span>${pmEscape(t('adv_avgrel'))} ${avg}</span><span>${r.stats.requests} ${pmEscape(t('adv_pages'))}</span><span>${r.stats.elapsed}s</span></div>
     <table>${rows}</table>
   </div>`;
 }
 
+// The grid is painted ONCE, all three cards pending, plus an empty tail slot.
+// After this the box is never rebuilt wholesale: each card is swapped in place
+// as it lands (pmUpdateCard) and the winner + full ranking are filled in at the
+// end (pmSettleCompare). Rebuilding the whole innerHTML on every landing — the
+// old behaviour — tore down all three cards each time, restarting the pending
+// spinners and repainting the block; that full-grid repaint, three or four
+// times over a ~1-minute crawl, was the flicker.
 function pmRenderCompare(runs, query, seedUrl) {
   const seedHost = pmHost(seedUrl);
   const out = document.getElementById('azr-out');
-  const done = runs.filter(r => r.state === 'ok');
-  // "best" is a claim about all three orderings, so it waits for all three.
-  // Awarding it while runs are still in flight would just mark whoever was
-  // fastest, which is the opposite of what the comparison is for.
-  const settled = runs.every(r => r.state !== 'pending');
-  const best = settled && done.length
-    ? done.reduce((a, b) => (pmRelevant(b) > pmRelevant(a) ? b : a))
-    : null;
-  const cards = runs.map(r => pmCard(r, seedHost, r === best)).join('');
-  let tail = '';
-  if (best) {
-    // The three cards only show each strategy's top 3. The winner's full ranked
-    // list is what you'd actually feed to an LLM, so it goes below in full, with
-    // clickable URLs.
-    const bestHits = (best.pages || []).filter(p => (p.relevance || 0) >= 0.1);
-    const bestList = (bestHits.length ? bestHits : (best.pages || []))
-      .slice().sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
-    const bestRows = bestList.map(p =>
-      `<tr><td title="${pmEscape(p.url)}">${pmLink(p.url, pmShort(p.url, seedHost))}</td>` +
-      `<td style="text-align:right;font-family:var(--mono)">${(p.relevance || 0).toFixed(3)}</td></tr>`).join('');
-    tail = `<div class="count-row"><span class="count">${pmEscape(t('pm_cmp_best'))} ${best.strategy.toUpperCase()} · ${bestHits.length}/${best.stats.requests} · ${best.stats.elapsed}s</span></div>
-    <div class="tablewrap"><table class="rank">${bestRows}</table></div>`;
-  }
+  const cards = runs.map(r => pmCard(r, seedHost, false)).join('');
   out.innerHTML = `<div class="count-row"><span class="count">${pmEscape(t('pm_cmp_head'))} <i>${pmEscape(query)}</i></span></div>
-    <div class="cmp-grid">${cards}</div>${tail}`;
+    <div class="cmp-grid">${cards}</div><div id="cmp-tail"></div>`;
   out.className = 'azr-out show';
 }
+
+// Swap only the card whose request just landed. Its two siblings — and their
+// still-spinning placeholders — are left in the DOM untouched, so nothing
+// around the card repaints.
+function pmUpdateCard(run, seedUrl) {
+  const el = document.getElementById(`cmp-card-${run.strategy}`);
+  if (el) el.outerHTML = pmCard(run, pmHost(seedUrl), false);
+}
+
+// All three have landed. "best" is a claim about all three orderings, so it is
+// awarded now, not to whoever was fastest — re-render just the winning card to
+// mark it, and fill the tail slot with its full ranked list (what you'd feed an
+// LLM). Touches only the winner card and the tail; the other two stay put.
+function pmSettleCompare(runs, query, seedUrl) {
+  const seedHost = pmHost(seedUrl);
+  const done = runs.filter(r => r.state === 'ok');
+  if (!done.length) return;
+  const best = done.reduce((a, b) => (pmRelevant(b) > pmRelevant(a) ? b : a));
+  const winEl = document.getElementById(`cmp-card-${best.strategy}`);
+  if (winEl) winEl.outerHTML = pmCard(best, seedHost, true);
+  const bestHits = (best.pages || []).filter(p => (p.relevance || 0) >= 0.1);
+  const bestList = (bestHits.length ? bestHits : (best.pages || []))
+    .slice().sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+  const bestRows = bestList.map(p =>
+    `<tr><td title="${pmEscape(p.url)}">${pmLink(p.url, pmShort(p.url, seedHost))}</td>` +
+    `<td style="text-align:right;font-family:var(--mono)">${(p.relevance || 0).toFixed(3)}</td></tr>`).join('');
+  const tail = document.getElementById('cmp-tail');
+  if (tail) tail.innerHTML = `<div class="count-row"><span class="count">${pmEscape(t('pm_cmp_best'))} ${best.strategy.toUpperCase()} · ${bestHits.length}/${best.stats.requests} · ${best.stats.elapsed}s</span></div>
+    <div class="tablewrap"><table class="rank">${bestRows}</table></div>`;
+}
+
+// Holds the current run's AbortController while a request is in flight (null
+// otherwise), so switching modes mid-run can offer to stop and actually abort.
+let pmAbort = null;
 
 async function analyze() {
   const url = document.getElementById("azr-url").value.trim();
@@ -557,8 +616,55 @@ async function analyze() {
   const btn = document.getElementById("azr-btn");
   const status = document.getElementById("azr-status");
   const out = document.getElementById("azr-out");
+  // A bot-wall block reads as a calm full-width notice — shield, a title and
+  // the rest in grey — rather than a thin red status line. Backend sends
+  // "Blocked by X — detail…", so split on the dash into title + detail.
+  const showBlock = (d) => {
+    const shield = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+    const parts = String(d.error || '').split(' — ');
+    const title = d.wall ? 'Blocked by ' + d.wall : (parts[0] || 'Blocked');
+    const detail = parts.length > 1 ? parts.slice(1).join(' — ') : '';
+    status.className = 'status'; status.innerHTML = '';
+    out.className = 'azr-out show';
+    out.innerHTML = '<div class="azr-block"><div class="ic">' + shield + '</div><div>' +
+      '<div class="title">' + pmEscape(title) + '</div>' +
+      (detail ? '<div class="detail">' + pmEscape(detail) + '</div>' : '') +
+      '</div></div>';
+  };
+  // Seed URL we couldn't open (bad domain, 404, or two links pasted into one).
+  // Same calm card as a block, an alert-circle icon rather than the shield.
+  const showUnreachable = () => {
+    const alert = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>' +
+      '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    status.className = 'status'; status.innerHTML = '';
+    out.className = 'azr-out show';
+    out.innerHTML = '<div class="azr-block"><div class="ic">' + alert + '</div><div>' +
+      '<div class="title">' + pmEscape(t('unreach_t')) + '</div>' +
+      '<div class="detail">' + pmEscape(t('unreach_d')) + '</div>' +
+      '</div></div>';
+  };
+  // Seed reachable but throttling us (HTTP 429). The same calm card, a clock
+  // icon — this is a "wait and retry", not a dead page or a wall. When the site
+  // sent a Retry-After we append the concrete wait to the shared wording.
+  const showRateLimit = (d) => {
+    const clock = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    const wait = d && d.retry_after ? ' (~' + d.retry_after + 's)' : '';
+    status.className = 'status'; status.innerHTML = '';
+    out.className = 'azr-out show';
+    out.innerHTML = '<div class="azr-block"><div class="ic">' + clock + '</div><div>' +
+      '<div class="title">' + pmEscape(t('ratelimit_t')) + '</div>' +
+      '<div class="detail">' + pmEscape(t('ratelimit_d')) + pmEscape(wait) + '</div>' +
+      '</div></div>';
+  };
   if (!url) { status.className = "status err"; status.textContent = t("st_enter_url"); return; }
   btn.disabled = true;
+  const ac = new AbortController(); pmAbort = ac;
   status.className = "status run"; status.innerHTML = '<span class="spinner"></span>' + t("st_analyzing");
   out.className = "azr-out"; out.innerHTML = "";
   try {
@@ -567,11 +673,15 @@ async function analyze() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, lang: currentLang() }),
+        signal: ac.signal,
       });
       const j = await r.json();
+      if (j.blocked) { showBlock(j); return; }
+      if (j.rate_limited) { showRateLimit(j); return; }
+      if (j.unreachable) { showUnreachable(); return; }
       if (!j.ok) { status.className = "status err"; status.textContent = "✗ " + (j.error || "Error"); return; }
       status.className = "status ok";
-      status.innerHTML = `✓ ${t("st_strategy")} <span class="time">${j.method}</span>`;
+      status.innerHTML = `${t("st_strategy")} <span class="time">${j.method}</span>`;
       renderAnalysis(j);
       document.getElementById("azr-hint").classList.add("show");
       return;
@@ -579,12 +689,23 @@ async function analyze() {
     if (mode === 'crawl') {
       // same budget, three orderings — the only fair way to compare them
       const t0 = Date.now();
-      // The grid is painted immediately, in a fixed order, with all three cards
-      // empty; each one fills in place when its own request lands. Shark
-      // typically comes back ~3s before the slowest run, and there is no reason
-      // to make you wait for the slowest to see it.
+      // The grid fills in place: each card is painted empty and swapped for its
+      // result when its own request lands — Shark typically returns ~3s before
+      // the slowest run, and there's no reason to wait for the slowest to see it.
+      //
+      // But it isn't painted *yet*. All three legs fetch the same seed first, so
+      // a seed-level failure (unreachable / walled) hits them identically —
+      // flashing three "running" spinners and then flipping the whole thing to
+      // "couldn't open that page" reads backwards. So the grid is revealed only
+      // once a leg gets *past* the seed; if every leg fails at it, the grid never
+      // appears and the failure card below shows on its own.
       const runs = PM_STRATS.map(strategy => ({ strategy, state: 'pending' }));
-      pmRenderCompare(runs, extra, url);
+      let gridPainted = false;
+      const revealGrid = () => {
+        if (gridPainted) return;
+        gridPainted = true;
+        pmRenderCompare(runs, extra, url);
+      };
       let landed = 0;
       const tick = () => {
         status.className = 'status run';
@@ -596,6 +717,7 @@ async function analyze() {
           const r = await fetch('/crawl', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, strategy: run.strategy, query: extra }),
+            signal: ac.signal,
           });
           const d = await r.json();
           Object.assign(run, d, { state: d.ok ? 'ok' : 'err' });
@@ -604,35 +726,61 @@ async function analyze() {
           run.error = String(e);
         }
         landed++;
+        // Aborted mid-run (user switched modes and chose to stop): don't paint
+        // over the box the switch just cleared for the new mode.
+        if (ac.signal.aborted) return;
         tick();
-        pmRenderCompare(runs, extra, url);
+        // A seed-level failure alone doesn't reveal the grid — every leg would
+        // fail identically and the failure card is the right answer. Anything
+        // that got past the seed reveals it; from then on every landing (a
+        // per-strategy error included) swaps its own card in place.
+        if (!(run.unreachable || run.blocked || run.rate_limited)) revealGrid();
+        if (gridPainted) pmUpdateCard(run, url);
       }));
+      if (ac.signal.aborted) return;   // stopped on a mode switch
       // Only a total wipeout is a page-level error; one strategy failing has
       // already been reported inside its own card.
       const okRuns = runs.filter(x => x.state === 'ok');
       if (!okRuns.length) {
+        const blocked = runs.find(x => x.blocked);
+        if (blocked) { showBlock(blocked); return; }
+        const throttled = runs.find(x => x.rate_limited);
+        if (throttled) { showRateLimit(throttled); return; }
+        const dead = runs.find(x => x.unreachable);
+        if (dead) { showUnreachable(); return; }
         status.className = 'status err';
         status.textContent = '✗ ' + ((runs.find(x => x.error) || {}).error || 'crawl failed');
         return;
       }
+      // All three landed with at least one winner: award "best" and drop the
+      // full ranking below — in place, so the grid itself doesn't re-render.
+      pmSettleCompare(runs, extra, url);
       status.className = 'status ok';
       // The .time chip is for a single datum (a method, a duration) — prose
       // inside it reads as a mislabelled value. The three runs are concurrent,
       // so the wall clock is the honest number, not the sum of the three.
-      status.innerHTML = `✓ ${t('st_three')} <span class="time">${((Date.now() - t0) / 1000).toFixed(1)}s</span>`;
+      status.innerHTML = `${t('st_three')} <span class="time">${((Date.now() - t0) / 1000).toFixed(1)}s</span>`;
       return;
     }
     const params = new URLSearchParams({ url, method: mode });
     if (mode === 'extract') params.set('select', extra);
-    const r = await fetch('/api?' + params.toString());
+    const r = await fetch('/api?' + params.toString(), { signal: ac.signal });
     const d = await r.json();
+    // Seed failures wear the same calm card here as in compare mode: a bot wall
+    // is the shield, a page that wouldn't open (bad domain, 404, two links
+    // pasted into one) is the alert-circle. Only a genuinely different error —
+    // a bad selector, a malformed request — falls through to the red line.
+    if (d.blocked) { showBlock(d); return; }
+    if (d.rate_limited) { showRateLimit(d); return; }
+    if (d.unreachable) { showUnreachable(); return; }
     if (d.error) { status.className = "status err"; status.textContent = "✗ " + d.error; return; }
     status.className = "status ok";
-    status.innerHTML = `✓ <span class="time">/api?method=${mode}</span>`;
+    status.innerHTML = `<span class="time">/api?method=${mode}</span>`;
     pmRender(mode, d, url);
   } catch (e) {
+    if (ac.signal.aborted || e.name === 'AbortError') return;  // user stopped it
     status.className = "status err"; status.textContent = "✗ " + e;
-  } finally { btn.disabled = false; }
+  } finally { btn.disabled = false; if (pmAbort === ac) pmAbort = null; }
 }
 
 function renderAnalysis(j) {
@@ -705,8 +853,8 @@ window.addEventListener("DOMContentLoaded", () => {
   if (deep) {
     document.getElementById("azr-url").value = deep;
     // Someone arriving with their own URL brought a page, not a topic, and the
-    // landing mode's example query ("san francisco") would be meaningless for
-    // it. Markdown needs nothing but the URL, so that is where they land.
+    // landing mode's example query ("books") would be meaningless for it.
+    // Markdown needs nothing but the URL, so that is where they land.
     document.querySelectorAll('.azr-mode').forEach(x =>
       x.classList.toggle('active', x.dataset.mode === 'auto'));
   }
