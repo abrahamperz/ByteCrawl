@@ -21,7 +21,7 @@ from flask import (
 
 import bytecrawl
 from landing import analytics, services
-from landing.content import TECHNIQUES
+from landing.content import DEMO_EXAMPLES, TECHNIQUES
 
 pages_bp = Blueprint("pages", __name__)
 api_bp = Blueprint("api", __name__)
@@ -32,7 +32,7 @@ api_bp = Blueprint("api", __name__)
 # --------------------------------------------------------------------------- #
 @pages_bp.route("/")
 def landing():
-    return render_template("landing.html")
+    return render_template("landing.html", demos=DEMO_EXAMPLES)
 
 
 @pages_bp.route("/agent-onboarding/skill.json")
@@ -86,7 +86,7 @@ def methods():
 
 @pages_bp.route("/playground")
 def playground():
-    return render_template("try.html", techniques=TECHNIQUES)
+    return render_template("try.html", techniques=TECHNIQUES, demos=DEMO_EXAMPLES)
 
 
 @pages_bp.route("/try")

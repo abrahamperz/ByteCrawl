@@ -459,16 +459,19 @@
     <div class="hbar">
       <div class="hbar-top">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);flex:none"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        <input id="hbar-url" type="text" value="en.wikipedia.org/wiki/Silicon_Valley" placeholder="en.wikipedia.org/wiki/Silicon_Valley" spellcheck="false" autocomplete="off">
+        <input id="hbar-url" type="text" value="{{ demos.crawl.url | replace('https://','') | replace('http://','') }}" placeholder="{{ demos.crawl.url | replace('https://','') | replace('http://','') }}" spellcheck="false" autocomplete="off">
       </div>
       <div class="hbar-q" id="hbar-qrow">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);flex:none"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="hbar-query" type="text" value="san francisco" placeholder="san francisco" spellcheck="false" autocomplete="off">
+        <input id="hbar-query" type="text" value="{{ demos.crawl.query }}" placeholder="{{ demos.crawl.query }}" spellcheck="false" autocomplete="off">
         <span class="hbar-hint" data-i18n="hbar_hint">(query to search)</span>
       </div>
       <div class="hbar-bot">
         <button class="hmode active" data-hmode="crawl"><span class="hdot"></span>Crawl</button>
         <button class="hmode" data-hmode="markdown"><span class="hdot"></span>Markdown</button>
+        <button class="hmode" data-hmode="links"><span class="hdot"></span>Links</button>
+        <button class="hmode" data-hmode="json"><span class="hdot"></span>JSON</button>
+        <button class="hmode" data-hmode="extract"><span class="hdot"></span>Extract</button>
         <button id="hbar-go" aria-label="Go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M12.5 6l6 6-6 6"/></svg></button>
       </div>
     </div>
@@ -623,6 +626,8 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
+  // Live-demo examples, shared with the playground (DEMO_EXAMPLES in content.py).
+  window.DEMOS = {{ demos | tojson }};
   // The setup button carries the command for whoever is reading: an MCP
   // endpoint for agents, a pip install for humans.
   // --- hero ASCII stream: glyphs on the side margins drift slowly upward
@@ -759,21 +764,71 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
   const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const hbarMode = () => (document.querySelector('.hmode.active') || {}).dataset?.hmode || 'crawl';
 
-  function syncQueryRow() {
-    hbarQRow.classList.toggle('hide', hbarMode() !== 'crawl');
+  // Each mode carries its own example: a focused crawl needs a linky hub with a
+  // topic (quotes.toscrape.com + "books" — Shark walks straight into the /books
+  // tag pages while BFS wanders the other tags), Markdown wants a dense article
+  // where the token saving shows (a docs page). Both examples come from
+  // DEMO_EXAMPLES in content.py (shared with the playground) via window.DEMOS,
+  // so there is one place to edit them. Swapping is only safe while the field
+  // still holds one of ours; a URL the visitor typed is not, and survives.
+  const DEMOS = window.DEMOS || {};
+  const hbarStrip = u => (u || '').replace(/^https?:\/\//, '');
+  // Per-mode seed URL. The hero shows the scheme-less form for a cleaner look;
+  // cleanUrl() puts https:// back before the request. All five come straight
+  // from DEMOS, so every mode has a working example and the bar mirrors the
+  // playground's methods.
+  const HBAR_DEFAULTS = {
+    crawl:    hbarStrip(DEMOS.crawl    && DEMOS.crawl.url),
+    markdown: hbarStrip(DEMOS.markdown && DEMOS.markdown.url),
+    links:    hbarStrip(DEMOS.links    && DEMOS.links.url),
+    json:     hbarStrip(DEMOS.json     && DEMOS.json.url),
+    extract:  hbarStrip(DEMOS.extract  && DEMOS.extract.url),
+  };
+  // The second field is a topic (Crawl) or a CSS selector (Extract); the other
+  // three modes don't use it. Each entry carries the example value and the
+  // i18n key for the hint shown at the end of the row.
+  const HBAR_EXTRA = {
+    crawl:   { val: (DEMOS.crawl   && DEMOS.crawl.query)   || '', i18n: 'hbar_hint',       fallback: '(query to search)' },
+    extract: { val: (DEMOS.extract && DEMOS.extract.query) || '', i18n: 'pm_hint_extract', fallback: '(CSS selector)' },
+  };
+  const hbarHint = hbarQRow.querySelector('.hbar-hint');
+  // A field still holding one of our example values may be swapped when the
+  // mode changes; a value the visitor typed is theirs and survives the switch.
+  const HBAR_URL_OURS = new Set(Object.values(HBAR_DEFAULTS));
+  HBAR_URL_OURS.add(hbarInput.value.trim());
+  const HBAR_EXTRA_OURS = new Set(Object.values(HBAR_EXTRA).map(e => e.val));
+  HBAR_EXTRA_OURS.add(hbarQuery.value.trim());
+
+  // Show the second field only for the modes that use it, and swap its example
+  // (and hint) to match the mode. Re-points data-i18n so a later language
+  // switch re-localizes the right hint.
+  function syncHbarExtra() {
+    const ex = HBAR_EXTRA[hbarMode()];
+    hbarQRow.classList.toggle('hide', !ex);
+    if (!ex) return;
+    hbarQuery.placeholder = ex.val;
+    if (!hbarQuery.value.trim() || HBAR_EXTRA_OURS.has(hbarQuery.value.trim())) hbarQuery.value = ex.val;
+    hbarHint.setAttribute('data-i18n', ex.i18n);
+    hbarHint.textContent = tr(ex.i18n, ex.fallback);
+  }
+  function syncHbarUrl() {
+    const want = HBAR_DEFAULTS[hbarMode()];
+    const cur = hbarInput.value.trim();
+    if (want && (!cur || HBAR_URL_OURS.has(cur))) hbarInput.value = want;
   }
   document.querySelectorAll('.hmode').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.hmode').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      syncQueryRow();
+      syncHbarUrl();
+      syncHbarExtra();
       // The old answer belongs to the old mode — drop it instead of leaving
       // Markdown output sitting under the Crawl tab.
       hbarOut.classList.remove('show');
       hbarOut.innerHTML = '';
     });
   });
-  syncQueryRow();
+  syncHbarExtra();
 
   function hbarBox(head, body) {
     hbarOut.innerHTML = '<div class="hout-box"><div class="hout-head">' + head +
@@ -848,6 +903,8 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
     const params = new URLSearchParams({ url });
     if (mode === 'crawl') { params.set('method', 'crawl'); params.set('query', q); params.set('pages', '12'); }
     else if (mode === 'markdown') { params.set('method', 'markdown'); }
+    else if (mode === 'json') { params.set('method', 'json'); }
+    else if (mode === 'extract') { params.set('method', 'extract'); params.set('select', q); }
     else { params.set('method', 'links'); }
 
     hbarGoBtn.disabled = true;
@@ -897,6 +954,34 @@ result = <span class="f">SharkSearch</span>(query=<span class="s">"san francisco
           mdBtn.textContent = tr('copied', 'copied ✓');
           setTimeout(() => { mdBtn.textContent = tr('copy', 'copy'); }, 1600);
         });
+      } else if (mode === 'json') {
+        hbarBox('<span class="ok">JSON</span><span>· ' + link(url, 'open') + '</span>',
+                '<pre>' + esc(JSON.stringify(d.data, null, 2)) + '</pre>');
+      } else if (mode === 'extract') {
+        // No selector: the API returns the repeated blocks it found. Offer each
+        // as a button that fills the field and runs it — the same "what's on
+        // this page?" path the playground has.
+        if (d.candidates) {
+          if (!d.candidates.length) {
+            hbarBox('<span>nothing obvious to extract</span>', '<pre>No repeated blocks found here.</pre>');
+            return;
+          }
+          const rows = d.candidates.map(c => {
+            const sel = esc(Object.values(c.fields)[0] || '');
+            return '<tr><td><button class="hpick" data-sel="' + sel + '"><code>' +
+                   esc(c.item) + '</code> ×' + c.count + '</button></td></tr>';
+          }).join('');
+          hbarBox('<span class="ok">' + d.candidates.length + ' blocks</span><span>· pick one to extract</span>',
+                  '<table>' + rows + '</table>');
+          hbarOut.querySelectorAll('.hpick').forEach(b => b.addEventListener('click', () => {
+            hbarQuery.value = b.dataset.sel;
+            hbarGo();
+          }));
+          return;
+        }
+        const rows = (d.values || []).slice(0, 20).map(v => '<tr><td>' + esc(v) + '</td></tr>').join('');
+        hbarBox('<span class="ok">' + (d.values || []).length + ' values</span><span>· <span class="q">' +
+                esc(d.select || q) + '</span></span>', '<table>' + rows + '</table>');
       } else {
         const rows = (d.links || []).slice(0, 12).map(l => {
           let abs = l; try { abs = new URL(l, url).href; } catch (_) {}

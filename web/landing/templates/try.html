@@ -326,8 +326,8 @@
            mode's entry in PM_DEFAULTS (crawl) so the field doesn't change
            under the visitor on load. -->
       <input id="azr-url" class="azr-input" type="text"
-             value="https://en.wikipedia.org/wiki/Silicon_Valley"
-             placeholder="https://en.wikipedia.org/wiki/Silicon_Valley"
+             value="{{ demos.crawl.url }}"
+             placeholder="{{ demos.crawl.url }}"
              onkeydown="if(event.key==='Enter')analyze()">
       <button id="azr-btn" class="btn" onclick="analyze()" data-i18n="analyze_btn">Run</button>
     </div>
@@ -347,11 +347,15 @@
 
 <script src="{{ url_for('static', filename='i18n.js') }}"></script>
 <script>
+// Live-demo examples, shared with the home hero (DEMO_EXAMPLES in content.py).
+window.DEMOS = {{ demos | tojson }};
+
 // --- method selector: Markdown explains the strategy, the rest hit /api ---
 // One URL field feeds six methods, so no single default works for all of
-// them: a book-grid CSS selector means nothing on a JSON endpoint, and a
-// toy quotes site shows nothing interesting for a focused crawl. Each mode
-// carries its own working example instead.
+// them: a book-grid CSS selector means nothing on a JSON endpoint. Each mode
+// carries its own working example, and they come from DEMO_EXAMPLES in
+// content.py (shared with the home hero) via window.DEMOS — so the examples
+// live in one place and the two pages can't drift apart.
 //
 // Markdown runs /analyze rather than /api?method=markdown: it returns the
 // same conversion plus the routing steps and the token count it saved, so
@@ -359,19 +363,19 @@
 //
 // Graph crawl runs all three strategies on the same budget instead of just
 // one. A single ordering looks like any other crawler; run side by side on
-// Wikipedia + "san francisco" it is 20/20 relevant pages for Shark-Search
-// against 1/20 for BFS, which is the whole reason the frontier strategies
-// are in here. The winner's ranked pages are shown below the comparison, so
-// nothing the single-strategy mode used to show is lost.
-// Listed in chip order; the first entry is the landing mode.
+// quotes.toscrape.com + "books", Shark-Search walks straight into the /books
+// tag pages while BFS wanders the other tags — which is the whole reason the
+// frontier strategies are in here. The winner's ranked pages are shown below
+// the comparison, so nothing the single-strategy mode used to show is lost.
+// Listed in chip order; the first entry is the landing mode. "auto" is the
+// playground's name for Markdown, so it reads DEMOS.markdown.
+const DEMOS = window.DEMOS || {};
 const PM_DEFAULTS = {
-  crawl:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley',
-              ph: 'san francisco', hint: 'pm_hint_crawl' },
-  auto:     { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
-  links:    { url: 'https://en.wikipedia.org/wiki/Silicon_Valley' },
-  json:     { url: 'https://data.sfgov.org/resource/wg3w-h783.json?$limit=5' },
-  extract:  { url: 'https://books.toscrape.com/',
-              ph: 'h3 a::attr(title)', hint: 'pm_hint_extract' },
+  crawl:    { url: DEMOS.crawl.url,   ph: DEMOS.crawl.query,   hint: DEMOS.crawl.hint },
+  auto:     { url: DEMOS.markdown.url },
+  links:    { url: DEMOS.links.url },
+  json:     { url: DEMOS.json.url },
+  extract:  { url: DEMOS.extract.url, ph: DEMOS.extract.query, hint: DEMOS.extract.hint },
 };
 // Swapping defaults on mode change is only safe while the field still holds
 // one of ours; anything else is the visitor's own input and must survive.
@@ -849,8 +853,8 @@ window.addEventListener("DOMContentLoaded", () => {
   if (deep) {
     document.getElementById("azr-url").value = deep;
     // Someone arriving with their own URL brought a page, not a topic, and the
-    // landing mode's example query ("san francisco") would be meaningless for
-    // it. Markdown needs nothing but the URL, so that is where they land.
+    // landing mode's example query ("books") would be meaningless for it.
+    // Markdown needs nothing but the URL, so that is where they land.
     document.querySelectorAll('.azr-mode').forEach(x =>
       x.classList.toggle('active', x.dataset.mode === 'auto'));
   }
