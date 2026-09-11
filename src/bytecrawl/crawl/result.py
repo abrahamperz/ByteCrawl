@@ -10,7 +10,7 @@ class CrawlResult:
     """What a crawl returns: pages, graph and numbers for comparison."""
 
     strategy: str
-    pages: list[dict] = field(default_factory=list)   # url, title, score, relevance, depth, order
+    pages: list[dict] = field(default_factory=list)  # url, title, score, relevance, depth, order
     graph: dict[str, list[str]] = field(default_factory=dict)
     stats: dict = field(default_factory=dict)
 

@@ -34,8 +34,13 @@ class Scraper:
         r = self._session.get(url, timeout=self.timeout)
         r.raise_for_status()
         self._wait()
-        return Page(url=url, html=_decoded_html(r), method="static",
-                    elapsed=round(time.perf_counter() - t0, 3), status=r.status_code)
+        return Page(
+            url=url,
+            html=_decoded_html(r),
+            method="static",
+            elapsed=round(time.perf_counter() - t0, 3),
+            status=r.status_code,
+        )
 
     def api(self, url: str, params: dict | None = None) -> Page:
         """Technique 3: requests an API and stores the JSON."""
@@ -48,8 +53,13 @@ class Scraper:
         except ValueError as e:
             ctype = r.headers.get("content-type", "unknown")
             raise ValueError(f"{url} did not return JSON (content-type: {ctype})") from e
-        return Page(url=url, data=data, method="api",
-                    elapsed=round(time.perf_counter() - t0, 3), status=r.status_code)
+        return Page(
+            url=url,
+            data=data,
+            method="api",
+            elapsed=round(time.perf_counter() - t0, 3),
+            status=r.status_code,
+        )
 
     def browser(self, url: str, wait: str | None = None, scroll: bool = False) -> Page:
         """Technique 2: real browser (Playwright) for JS-rendered sites."""
@@ -75,8 +85,13 @@ class Scraper:
             status = resp.status if resp else 0
             nav.close()
         self._wait()
-        return Page(url=url, html=html, method="browser",
-                    elapsed=round(time.perf_counter() - t0, 3), status=status)
+        return Page(
+            url=url,
+            html=html,
+            method="browser",
+            elapsed=round(time.perf_counter() - t0, 3),
+            status=status,
+        )
 
     def fetch(self, url: str, strategy: str = "auto") -> Page:
         """Fetches the page. strategy: auto | static | browser.
@@ -116,7 +131,7 @@ class Scraper:
         """
         from urllib.parse import urljoin
 
-        url = start
+        url: str | None = start
         results: list[dict] = []
         n = 0
         while url:

@@ -7,13 +7,15 @@ from concurrent.futures import ThreadPoolExecutor
 from .strategies import STRATEGIES
 
 
-def _leg(name: str, start: str, query: str, max_pages: int, max_depth: int,
-         delay: float, timeout: int) -> dict:
+def _leg(
+    name: str, start: str, query: str, max_pages: int, max_depth: int, delay: float, timeout: int
+) -> dict:
     """One strategy's leg of a comparison. Never raises: a strategy that fails
     reports inside its own entry so the other two still come back."""
     try:
         result = STRATEGIES[name](query=query, delay=delay, timeout=timeout).crawl(
-            start, max_pages=max_pages, max_depth=max_depth)
+            start, max_pages=max_pages, max_depth=max_depth
+        )
     except Exception as e:
         return {"error": f"{type(e).__name__}: {e}"}
     return {
@@ -23,8 +25,14 @@ def _leg(name: str, start: str, query: str, max_pages: int, max_depth: int,
     }
 
 
-def compare(start: str, query: str, max_pages: int = 20, max_depth: int = 4,
-            delay: float = 0.2, timeout: int = 10) -> dict:
+def compare(
+    start: str,
+    query: str,
+    max_pages: int = 20,
+    max_depth: int = 4,
+    delay: float = 0.2,
+    timeout: int = 10,
+) -> dict:
     """Run every strategy over one site on the same budget, side by side.
 
     A single ordering looks like any other crawler's. The case for having
@@ -49,13 +57,16 @@ def compare(start: str, query: str, max_pages: int = 20, max_depth: int = 4,
     if not query:
         raise ValueError(
             "compare needs a query: with nothing to be relevant to, the "
-            "strategies aren't comparable (use a single crawler instead)")
+            "strategies aren't comparable (use a single crawler instead)"
+        )
     names = list(STRATEGIES)
     with ThreadPoolExecutor(max_workers=len(names)) as pool:
-        legs = list(pool.map(
-            lambda n: _leg(n, start, query, max_pages, max_depth,
-                           delay * len(names), timeout),
-            names))
+        legs = list(
+            pool.map(
+                lambda n: _leg(n, start, query, max_pages, max_depth, delay * len(names), timeout),
+                names,
+            )
+        )
     results = dict(zip(names, legs))
 
     ok = {n: r for n, r in results.items() if "error" not in r}

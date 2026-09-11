@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      # true only when this push introduced a new version (no tag yet) —
+      # the publish job below keys off it so PyPI never gets a duplicate.
+      publish: ${{ steps.tag.outputs.exists == 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,3 +70,25 @@ jobs:
           gh release create "v${{ steps.v.outputs.version }}" \
             --title "v${{ steps.v.outputs.version }}" \
             --notes-file release-notes.md
+
+  # Runs in the SAME workflow run right after `release`, only for a new version.
+  # (A separate workflow keyed on the tag/release would NOT fire: events made
+  # with GITHUB_TOKEN don't trigger further workflow runs.)
+  publish:
+    needs: release
+    if: needs.release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      # OIDC token for PyPI Trusted Publishing — no API token/secret needed.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        run: |
+          pip install build
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

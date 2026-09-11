@@ -32,6 +32,4 @@ def assert_public_url(url: str) -> None:
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if not ip.is_global or ip.is_multicast:
-            raise ValueError(
-                f"URL resolves to a non-public address ({ip}) — refusing to fetch it"
-            )
+            raise ValueError(f"URL resolves to a non-public address ({ip}) — refusing to fetch it")

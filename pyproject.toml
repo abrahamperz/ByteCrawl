@@ -29,7 +29,7 @@ browser = ["playwright>=1.40"]
 llm = ["markdownify>=0.11", "trafilatura>=1.6"]
 mcp = ["mcp>=2; python_version >= '3.10'", "markdownify>=0.11", "trafilatura>=1.6"]
 all = ["playwright>=1.40", "markdownify>=0.11", "trafilatura>=1.6", "mcp>=2; python_version >= '3.10'"]
-dev = ["pytest>=7", "pytest-cov", "ruff"]
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "bandit"]
 
 [project.scripts]
 bytecrawl-mcp = "bytecrawl.mcp_server:main"
@@ -59,6 +59,15 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+# playwright is the optional [browser] extra, not installed for the type-check
+# job — Scraper.browser() imports it lazily behind a try/except. Ignore its
+# missing stubs instead of pulling the heavy browser stack into CI.
+module = ["playwright.*"]
+ignore_missing_imports = true
 
 [tool.vercel]
 entrypoint = "landing.app:app"

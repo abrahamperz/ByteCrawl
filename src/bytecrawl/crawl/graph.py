@@ -8,8 +8,9 @@ interesting experiment.
 from __future__ import annotations
 
 
-def pagerank(graph: dict[str, list[str]], damping: float = 0.85,
-             iterations: int = 30) -> dict[str, float]:
+def pagerank(
+    graph: dict[str, list[str]], damping: float = 0.85, iterations: int = 30
+) -> dict[str, float]:
     """PageRank via power iteration over the crawled graph.
 
     Offline version of the same concept OPIC approximates online: comparing

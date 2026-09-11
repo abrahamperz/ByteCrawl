@@ -1,6 +1,5 @@
 """Pure graph/text utilities: cosine, normalize, _root_domain, pagerank."""
 
-
 import pytest
 
 from bytecrawl.crawler import (
@@ -43,7 +42,8 @@ class TestRelevance:
         # A slipped keystroke used to score 0.0, which reads as "broken"
         # rather than "no match".
         assert relevance(self.TEXT, typo, self.URL) == pytest.approx(
-            relevance(self.TEXT, "mystery", self.URL))
+            relevance(self.TEXT, "mystery", self.URL)
+        )
 
     @pytest.mark.parametrize("miss", ["travel", "poetry", "zzzzzz"])
     def test_absent_topics_stay_zero(self, miss):
@@ -67,8 +67,7 @@ class TestNormalize:
         assert normalize("/docs", "https://x.test/a/b") == "https://x.test/docs"
 
     def test_strips_fragment(self):
-        assert normalize("https://x.test/p#section", "https://x.test") == \
-            "https://x.test/p"
+        assert normalize("https://x.test/p#section", "https://x.test") == "https://x.test/p"
 
     def test_bare_host_and_root_are_the_same_page(self):
         # Otherwise the crawler burns two budget slots on one page.
@@ -124,11 +123,14 @@ class TestPagerank:
 
 class TestCrawlResult:
     def _result(self):
-        return CrawlResult(strategy="test", pages=[
-            {"url": "a", "relevance": 0.9},
-            {"url": "b", "relevance": 0.05},
-            {"url": "c", "relevance": 0.5},
-        ])
+        return CrawlResult(
+            strategy="test",
+            pages=[
+                {"url": "a", "relevance": 0.9},
+                {"url": "b", "relevance": 0.05},
+                {"url": "c", "relevance": 0.5},
+            ],
+        )
 
     def test_relevant_filters_by_threshold(self):
         assert [p["url"] for p in self._result().relevant(0.1)] == ["a", "c"]

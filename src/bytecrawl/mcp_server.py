@@ -16,9 +16,7 @@ from __future__ import annotations
 try:
     from mcp.server.mcpserver import MCPServer
 except ImportError as e:  # pragma: no cover - exercised only without the extra
-    raise ImportError(
-        "The MCP server needs the 'mcp' extra: pip install bytecrawl[mcp]"
-    ) from e
+    raise ImportError("The MCP server needs the 'mcp' extra: pip install bytecrawl[mcp]") from e
 
 from .core import Scraper
 from .crawler import STRATEGIES as _STRATEGIES
@@ -79,8 +77,9 @@ def fetch_markdown(url: str) -> dict:
         "selector's values across the page, e.g. 'h3 a::attr(title)'."
     )
 )
-def extract(url: str, item: str = "", fields: dict[str, str] | None = None,
-            select: str = "") -> dict:
+def extract(
+    url: str, item: str = "", fields: dict[str, str] | None = None, select: str = ""
+) -> dict:
     # Three shapes, one tool. Agents reach for a single selector far more
     # often than for a record schema, and an agent that has never seen the
     # page can produce neither: fetch_markdown strips exactly the classes a
@@ -91,26 +90,28 @@ def extract(url: str, item: str = "", fields: dict[str, str] | None = None,
     if select and (item or fields):
         raise ValueError("pass either 'select' or 'item'+'fields', not both")
     if bool(item) != bool(fields):
-        raise ValueError("'item' and 'fields' go together — or pass neither "
-                         "to see what this page offers")
+        raise ValueError(
+            "'item' and 'fields' go together — or pass neither to see what this page offers"
+        )
     # Checked before the fetch: a malformed call shouldn't cost the site a
     # request.
     page = _scraper.fetch(url)
     if select:
         values = page.css_all(select)
-        return {"url": url, "select": select, "count": len(values),
-                "values": values}
+        return {"url": url, "select": select, "count": len(values), "values": values}
     if item:
-        records = page.extract(item, fields)
+        records = page.extract(item, fields or {})
         return {"url": url, "count": len(records), "records": records}
     candidates = page.selectors()
     return {
         "url": url,
         "candidates": candidates,
-        "hint": ("call extract again with the item and fields of whichever "
-                 "candidate holds what you want" if candidates else
-                 "no repeated blocks here — this page is probably not a "
-                 "listing; pass 'select' with a specific selector instead"),
+        "hint": (
+            "call extract again with the item and fields of whichever candidate holds what you want"
+            if candidates
+            else "no repeated blocks here — this page is probably not a "
+            "listing; pass 'select' with a specific selector instead"
+        ),
     }
 
 
@@ -136,8 +137,7 @@ def list_links(url: str, raw: bool = False) -> dict:
         "(level by level). Returns pages ranked by relevance plus crawl stats."
     )
 )
-def focused_crawl(url: str, query: str = "", strategy: str = "shark",
-                  max_pages: int = 20) -> dict:
+def focused_crawl(url: str, query: str = "", strategy: str = "shark", max_pages: int = 20) -> dict:
     if strategy not in _STRATEGIES:
         raise ValueError(f"strategy must be one of {sorted(_STRATEGIES)}")
     max_pages = min(max_pages, 50)  # keep agent calls bounded and polite
@@ -148,9 +148,7 @@ def focused_crawl(url: str, query: str = "", strategy: str = "shark",
         "strategy": strategy,
         "stats": result.stats,
         "pages": result.top(max_pages) if query else result.pages,
-        "pagerank_top": [
-            {"url": u, "rank": round(r, 4)} for u, r in list(ranks.items())[:10]
-        ],
+        "pagerank_top": [{"url": u, "rank": round(r, 4)} for u, r in list(ranks.items())[:10]],
     }
 
 
@@ -170,9 +168,7 @@ def compare_strategies(url: str, query: str, max_pages: int = 20) -> dict:
     return {"url": url, "query": query, "max_pages": max_pages, **out}
 
 
-@server.tool(
-    description="Fetch a JSON API endpoint (the 'hidden API' scraping technique)."
-)
+@server.tool(description="Fetch a JSON API endpoint (the 'hidden API' scraping technique).")
 def fetch_json_api(url: str, params: dict | None = None) -> dict:
     page = _scraper.api(url, params=params)
     return {"url": url, "status": page.status, "data": page.json()}

@@ -38,13 +38,13 @@ from mcp.server.transport_security import TransportSecuritySettings
 from . import mcp_server as local
 from .security import assert_public_url
 
-MAX_PAGES = 10          # hard cap per focused_crawl call (local allows 50)
+MAX_PAGES = 10  # hard cap per focused_crawl call (local allows 50)
 # compare_strategies is three crawls that the rate limiter charges as one
 # request, so it gets a smaller budget: 3 x 6 = 18 fetches, about two
 # focused_crawls' worth. Same bounded-cost rule, applied to a heavier call.
 MAX_COMPARE_PAGES = 6
-RATE_LIMIT = 20         # requests per window per client IP
-RATE_WINDOW = 60.0      # seconds
+RATE_LIMIT = 20  # requests per window per client IP
+RATE_WINDOW = 60.0  # seconds
 
 
 def _guarded(url: str) -> None:
@@ -93,16 +93,19 @@ class RateLimitMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and not self.limiter.allow(self._client_ip(scope)):
-            await send({
-                "type": "http.response.start",
-                "status": 429,
-                "headers": [(b"content-type", b"application/json"),
-                            (b"retry-after", b"60")],
-            })
-            await send({
-                "type": "http.response.body",
-                "body": b'{"error": "rate limit exceeded, try again in a minute"}',
-            })
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 429,
+                    "headers": [(b"content-type", b"application/json"), (b"retry-after", b"60")],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b'{"error": "rate limit exceeded, try again in a minute"}',
+                }
+            )
             return
         await self.app(scope, receive, send)
 
@@ -119,64 +122,75 @@ server = MCPServer(
 )
 
 
-@server.tool(description=(
-    "Fetch a public web page and return it as clean Markdown for LLM "
-    "consumption, with tokens_estimate against tokens_html so you can "
-    "state the saving. Static HTML only on the hosted server."
-))
+@server.tool(
+    description=(
+        "Fetch a public web page and return it as clean Markdown for LLM "
+        "consumption, with tokens_estimate against tokens_html so you can "
+        "state the saving. Static HTML only on the hosted server."
+    )
+)
 def fetch_markdown(url: str) -> dict:
     _guarded(url)
     return local.fetch_markdown(url)
 
 
-@server.tool(description=(
-    "Extract data from a public page with CSS selectors. Call it with ONLY the "
-    "url to discover what is extractable — it returns the page's repeated "
-    "blocks with ready-to-use item + fields and a sample record each, which is "
-    "what you need when you have not seen the markup. Then 'item'+'fields' for "
-    "structured records (::text / ::attr(name); a field name ending in [] "
-    "collects a list), or 'select' on its own for a flat list of one "
-    "selector's values."
-))
-def extract(url: str, item: str = "", fields: dict[str, str] | None = None,
-            select: str = "") -> dict:
+@server.tool(
+    description=(
+        "Extract data from a public page with CSS selectors. Call it with ONLY the "
+        "url to discover what is extractable — it returns the page's repeated "
+        "blocks with ready-to-use item + fields and a sample record each, which is "
+        "what you need when you have not seen the markup. Then 'item'+'fields' for "
+        "structured records (::text / ::attr(name); a field name ending in [] "
+        "collects a list), or 'select' on its own for a flat list of one "
+        "selector's values."
+    )
+)
+def extract(
+    url: str, item: str = "", fields: dict[str, str] | None = None, select: str = ""
+) -> dict:
     _guarded(url)
     return local.extract(url, item=item, fields=fields, select=select)
 
 
-@server.tool(description=(
-    "Every outbound link on a public page as an absolute, deduplicated URL "
-    "(#fragments, mailto: and asset files dropped). raw=true returns the "
-    "untouched href values."
-))
+@server.tool(
+    description=(
+        "Every outbound link on a public page as an absolute, deduplicated URL "
+        "(#fragments, mailto: and asset files dropped). raw=true returns the "
+        "untouched href values."
+    )
+)
 def list_links(url: str, raw: bool = False) -> dict:
     _guarded(url)
     return local.list_links(url, raw=raw)
 
 
-@server.tool(description=(
-    "Focused crawl of a public site: visit the pages most relevant to 'query' "
-    "first. strategy: shark (default) | opic | bfs. Capped at "
-    f"{MAX_PAGES} pages per call on the hosted server."
-))
-def focused_crawl(url: str, query: str = "", strategy: str = "shark",
-                  max_pages: int = MAX_PAGES) -> dict:
+@server.tool(
+    description=(
+        "Focused crawl of a public site: visit the pages most relevant to 'query' "
+        "first. strategy: shark (default) | opic | bfs. Capped at "
+        f"{MAX_PAGES} pages per call on the hosted server."
+    )
+)
+def focused_crawl(
+    url: str, query: str = "", strategy: str = "shark", max_pages: int = MAX_PAGES
+) -> dict:
     _guarded(url)
-    return local.focused_crawl(url, query=query, strategy=strategy,
-                               max_pages=min(max_pages, MAX_PAGES))
+    return local.focused_crawl(
+        url, query=query, strategy=strategy, max_pages=min(max_pages, MAX_PAGES)
+    )
 
 
-@server.tool(description=(
-    "Run Shark-Search, OPIC and BFS over the same public site on the same "
-    "budget and return them side by side with a winner. Three crawls in one "
-    f"call, so it is capped at {MAX_COMPARE_PAGES} pages per strategy on the "
-    "hosted server."
-))
-def compare_strategies(url: str, query: str,
-                       max_pages: int = MAX_COMPARE_PAGES) -> dict:
+@server.tool(
+    description=(
+        "Run Shark-Search, OPIC and BFS over the same public site on the same "
+        "budget and return them side by side with a winner. Three crawls in one "
+        f"call, so it is capped at {MAX_COMPARE_PAGES} pages per strategy on the "
+        "hosted server."
+    )
+)
+def compare_strategies(url: str, query: str, max_pages: int = MAX_COMPARE_PAGES) -> dict:
     _guarded(url)
-    return local.compare_strategies(url, query=query,
-                                    max_pages=min(max_pages, MAX_COMPARE_PAGES))
+    return local.compare_strategies(url, query=query, max_pages=min(max_pages, MAX_COMPARE_PAGES))
 
 
 @server.tool(description="Fetch a public JSON API endpoint.")
@@ -204,12 +218,14 @@ def _transport_security() -> TransportSecuritySettings:
     and BYTECRAWL_ALLOWED_ORIGINS alongside it) to turn it back on — worth
     doing if you self-host on a domain that also serves authenticated apps.
     """
-    hosts = [h.strip() for h in
-             os.environ.get("BYTECRAWL_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    hosts = [
+        h.strip() for h in os.environ.get("BYTECRAWL_ALLOWED_HOSTS", "").split(",") if h.strip()
+    ]
     if not hosts:
         return TransportSecuritySettings(enable_dns_rebinding_protection=False)
-    origins = [o.strip() for o in
-               os.environ.get("BYTECRAWL_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    origins = [
+        o.strip() for o in os.environ.get("BYTECRAWL_ALLOWED_ORIGINS", "").split(",") if o.strip()
+    ]
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=hosts,
@@ -221,7 +237,9 @@ def create_app(limiter: RateLimiter | None = None):
     """ASGI app: streamable-HTTP MCP at /mcp, rate-limited. Stateless for
     serverless (json_response avoids long-lived SSE streams on Vercel)."""
     app = server.streamable_http_app(
-        streamable_http_path="/mcp", stateless_http=True, json_response=True,
+        streamable_http_path="/mcp",
+        stateless_http=True,
+        json_response=True,
         transport_security=_transport_security(),
     )
     return RateLimitMiddleware(app, limiter)
@@ -231,7 +249,9 @@ def main() -> None:
     """Entry point for bytecrawl-mcp-http (self-hosted)."""
     import uvicorn
 
-    uvicorn.run(create_app(), host="0.0.0.0", port=8000)
+    # nosec B104 — an MCP HTTP server must bind all interfaces to be reachable
+    # inside a container or serverless host.
+    uvicorn.run(create_app(), host="0.0.0.0", port=8000)  # nosec B104
 
 
 if __name__ == "__main__":

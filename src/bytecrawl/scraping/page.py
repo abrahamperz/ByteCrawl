@@ -63,7 +63,7 @@ class Page:
         """
         records = []
         for node in self.soup.select(item):
-            row = {}
+            row: dict[str, Any] = {}
             for name, spec in fields.items():
                 sel, op, arg = _split_selector(spec)
                 if name.endswith("[]"):
@@ -138,8 +138,11 @@ class Page:
         items = {s for s, _, _, _ in found}
         out = []
         for s, count, fields, node in found:
-            if any(count == c2 and set(fields) <= set(f2) and node in n2.parents
-                   for s2, c2, f2, n2 in found if s2 != s):
+            if any(
+                count == c2 and set(fields) <= set(f2) and node in n2.parents
+                for s2, c2, f2, n2 in found
+                if s2 != s
+            ):
                 continue
             # The other tell of a wrapper: one of its columns is an entire
             # other record. `li.col-xs-6` offers `article.product_pod::text`
@@ -147,8 +150,9 @@ class Page:
             if any(spec.split("::")[0] in items for spec in fields.values()):
                 continue
             sample = self.extract(s, fields)
-            out.append({"item": s, "count": count, "fields": fields,
-                        "sample": sample[0] if sample else {}})
+            out.append(
+                {"item": s, "count": count, "fields": fields, "sample": sample[0] if sample else {}}
+            )
             if len(out) == limit:
                 break
         return out
@@ -180,8 +184,10 @@ class Page:
         need = max(1, int(len(nodes) * coverage))
         # Named classes before bare tags, then shortest: `p.price_color::text`
         # is a column, `p::text` is whichever paragraph happened to be first.
-        keep = sorted((s for s, n in hits.items() if n >= need),
-                      key=lambda s: ("." not in s.split("::")[0], len(s)))
+        keep = sorted(
+            (s for s, n in hits.items() if n >= need),
+            key=lambda s: ("." not in s.split("::")[0], len(s)),
+        )
 
         fields, used = {}, set()
         for spec in keep:
@@ -195,8 +201,9 @@ class Page:
             # A selector that resolves everywhere but is blank everywhere is
             # not a column. Check against the instances, not the markup.
             op, arg = _split_selector(spec)[1:]
-            if not any(_value_from(n.select_one(sel), op, arg)
-                       for n in nodes[:5] if n.select_one(sel)):
+            if not any(
+                _value_from(n.select_one(sel), op, arg) for n in nodes[:5] if n.select_one(sel)
+            ):
                 continue
             used.add(sel)
             fields[name] = spec
@@ -208,13 +215,19 @@ class Page:
         # "£51.77In stockAdd to basket" — three fields glued into one, and
         # never what the caller wanted from any of them.
         probe = nodes[0]
-        inner = {sel for sel in used
-                 if (n := probe.select_one(sel)) is not None
-                 and any(n is not m and m in n.descendants
-                         for other in used
-                         if (m := probe.select_one(other)) is not None)}
-        return {k: v for k, v in fields.items()
-                if _split_selector(v)[0] not in inner or "::attr" in v}
+        inner = {
+            sel
+            for sel in used
+            if (n := probe.select_one(sel)) is not None
+            and any(
+                n is not m and m in n.descendants
+                for other in used
+                if (m := probe.select_one(other)) is not None
+            )
+        }
+        return {
+            k: v for k, v in fields.items() if _split_selector(v)[0] not in inner or "::attr" in v
+        }
 
     def links(self, raw: bool = False) -> list[str]:
         """Every link on the page as an absolute URL, deduplicated in order.
@@ -225,7 +238,7 @@ class Page:
         use, so what you get back is the set of pages you could visit next.
         Pass raw=True for the untouched attribute values.
         """
-        hrefs = [a["href"] for a in self.soup.select("a[href]")]
+        hrefs = [str(a["href"]) for a in self.soup.select("a[href]")]
         if raw:
             return hrefs
         out: list[str] = []
@@ -261,8 +274,11 @@ class Page:
         visible = len(self.soup.get_text(" ", strip=True))
         if visible and len(md) / visible < self._MAIN_CONTENT_FLOOR:
             return True
-        headings = [h.get_text(strip=True)
-                    for h in self.soup.select("h1,h2,h3,h4") if h.get_text(strip=True)]
+        headings = [
+            h.get_text(strip=True)
+            for h in self.soup.select("h1,h2,h3,h4")
+            if h.get_text(strip=True)
+        ]
         if len(headings) < self._MANY_HEADINGS:
             return False
         kept = sum(1 for h in headings if h[:30] in md)

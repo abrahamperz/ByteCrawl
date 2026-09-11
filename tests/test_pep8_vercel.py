@@ -11,6 +11,7 @@ Python sources vercel.json declares as builds, at the project's line
 length (pyproject.toml, 100). Reading the file list from vercel.json means
 a new entrypoint is covered the moment it's deployed, with no edit here.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,8 @@ def test_vercel_entrypoints_follow_pep8():
     assert sources, "vercel.json declares no Python builds — nothing to check"
 
     proc = subprocess.run(
-        ["ruff", "check", "--select", "E,W", *sources],
-        cwd=ROOT, capture_output=True, text=True)
+        ["ruff", "check", "--select", "E,W", *sources], cwd=ROOT, capture_output=True, text=True
+    )
     assert proc.returncode == 0, (
-        "Vercel-deployed code violates PEP 8:\n" + proc.stdout + proc.stderr)
+        "Vercel-deployed code violates PEP 8:\n" + proc.stdout + proc.stderr
+    )

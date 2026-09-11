@@ -31,15 +31,17 @@ class Crawler:
 
     name = "bfs"
 
-    def __init__(self, query: str = "", delay: float = 0.2, timeout: int = 10,
-                 same_domain: bool = True):
+    def __init__(
+        self, query: str = "", delay: float = 0.2, timeout: int = 10, same_domain: bool = True
+    ):
         self.query = query
         self.same_domain = same_domain
         self.scraper = Scraper(delay=delay, timeout=timeout)
 
     # --- extension point -------------------------------------------------------
-    def score_links(self, url: str, links: list[dict], page_relevance: float,
-                    depth: int) -> list[tuple[str, float]]:
+    def score_links(
+        self, url: str, links: list[dict], page_relevance: float, depth: int
+    ) -> list[tuple[str, float]]:
         """BFS: the score only encodes depth (shallower = visited sooner).
 
         links: [{url, anchor}]. Returns [(url, score)] for the frontier.
@@ -89,7 +91,7 @@ class Crawler:
 
             links = []
             for a in page.soup.select("a[href]"):
-                child = normalize(a["href"], url)
+                child = normalize(str(a["href"]), url)
                 if not child or child == url:
                     continue
                 if self.same_domain and _root_domain(urlparse(child).netloc) != domain:
@@ -97,11 +99,16 @@ class Crawler:
                 links.append({"url": child, "anchor": a.get_text(" ", strip=True)})
 
             result.graph[url] = [link["url"] for link in links]
-            result.pages.append({
-                "url": url, "title": title[:120], "score": round(score, 4),
-                "relevance": round(page_relevance, 4), "depth": depth,
-                "order": len(result.pages) + 1,
-            })
+            result.pages.append(
+                {
+                    "url": url,
+                    "title": title[:120],
+                    "score": round(score, 4),
+                    "relevance": round(page_relevance, 4),
+                    "depth": depth,
+                    "order": len(result.pages) + 1,
+                }
+            )
 
             self.on_visit(url, links)
 
@@ -117,8 +124,8 @@ class Crawler:
             "elapsed": round(time.perf_counter() - t0, 2),
             "frontier_left": len(frontier),
             "relevant_found": len(result.relevant()) if self.query else None,
-            "avg_relevance": round(
-                sum(p["relevance"] for p in result.pages) / len(result.pages), 4
-            ) if result.pages else 0.0,
+            "avg_relevance": round(sum(p["relevance"] for p in result.pages) / len(result.pages), 4)
+            if result.pages
+            else 0.0,
         }
         return result

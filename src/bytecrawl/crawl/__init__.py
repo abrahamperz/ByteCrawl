@@ -27,6 +27,15 @@ from .strategies import BFS, OPIC, STRATEGIES, SharkSearch
 from .text import cosine, relevance
 
 __all__ = [
-    "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult", "Frontier",
-    "STRATEGIES", "cosine", "relevance", "pagerank", "compare",
+    "Crawler",
+    "BFS",
+    "SharkSearch",
+    "OPIC",
+    "CrawlResult",
+    "Frontier",
+    "STRATEGIES",
+    "cosine",
+    "relevance",
+    "pagerank",
+    "compare",
 ]

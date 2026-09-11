@@ -6,7 +6,55 @@ on:
   pull_request:
 
 jobs:
+  # Quality gates run once on the current Python — they don't vary by runtime.
+  # Each is its own job so it shows as a separate check on the PR.
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src/bytecrawl tests
+
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff format --check src/bytecrawl tests
+
+  typecheck:
+    name: type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (package + llm/mcp deps so mypy resolves imports)
+        run: pip install -e ".[llm,dev,mcp]"
+      - run: mypy src/bytecrawl
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install bandit
+      - run: bandit -r src/bytecrawl -ll
+
   test:
+    name: unit test ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,7 +71,5 @@ jobs:
       - name: Install MCP extra (needs Python 3.10+)
         if: matrix.python-version != '3.9'
         run: pip install -e ".[mcp]"
-      - name: Lint
-        run: ruff check src/bytecrawl tests
       - name: Tests
         run: pytest --cov=bytecrawl --cov-report=term-missing

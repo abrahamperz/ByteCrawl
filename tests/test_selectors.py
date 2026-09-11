@@ -54,16 +54,17 @@ class TestPageExtraction:
         assert page().css_all("h1.missing") == []
 
     def test_extract_records_with_list_field(self):
-        rows = page().extract("div.quote", {
-            "quote": "span.text::text",
-            "author": "small.author::text",
-            "tags[]": "a.tag::text",
-        })
+        rows = page().extract(
+            "div.quote",
+            {
+                "quote": "span.text::text",
+                "author": "small.author::text",
+                "tags[]": "a.tag::text",
+            },
+        )
         assert rows == [
-            {"quote": "To be or not to be", "author": "Shakespeare",
-             "tags": ["life", "doubt"]},
-            {"quote": "I think therefore I am", "author": "Descartes",
-             "tags": ["mind"]},
+            {"quote": "To be or not to be", "author": "Shakespeare", "tags": ["life", "doubt"]},
+            {"quote": "I think therefore I am", "author": "Descartes", "tags": ["mind"]},
         ]
 
     def test_extract_missing_field_is_none(self):
@@ -81,12 +82,15 @@ class TestPageExtraction:
         assert page().links(raw=True) == ["/tag/life", "/tag/doubt", "/tag/mind"]
 
     def test_links_drops_fragments_mailto_and_duplicates(self):
-        p = Page(url="https://x.test/a/", html="""
+        p = Page(
+            url="https://x.test/a/",
+            html="""
             <a href="#cite_note-1">1</a><a href="#">top</a>
             <a href="mailto:hi@x.test">mail</a><a href="/logo.png">logo</a>
             <a href="/b">b</a><a href="https://x.test/b">b again</a>
             <a href="/c#section">c</a>
-        """)
+        """,
+        )
         assert p.links() == ["https://x.test/a/", "https://x.test/b", "https://x.test/c"]
 
     def test_tokens_estimate(self):
@@ -97,14 +101,21 @@ class TestPageExtraction:
 class TestSelectorDiscovery:
     """page.selectors(): the answer to "I have never seen this markup"."""
 
-    LISTING = ("<html><body><div class='grid'>" + "".join(
-        f"<li class='col-md-3'><article class='card'>"
-        f"<h3><a href='/b{i}' title='Book {i}'>Book {i}</a></h3>"
-        f"<p class='price'>£{i}.00</p><p class='stock'>In stock</p>"
-        f"</article></li>" for i in range(6)) + "</div></body></html>")
+    LISTING = (
+        "<html><body><div class='grid'>"
+        + "".join(
+            f"<li class='col-md-3'><article class='card'>"
+            f"<h3><a href='/b{i}' title='Book {i}'>Book {i}</a></h3>"
+            f"<p class='price'>£{i}.00</p><p class='stock'>In stock</p>"
+            f"</article></li>"
+            for i in range(6)
+        )
+        + "</div></body></html>"
+    )
 
     def _page(self):
         from bytecrawl.core import Page
+
         return Page(url="https://x.test/", html=self.LISTING)
 
     def test_finds_the_repeating_record(self):
@@ -136,5 +147,6 @@ class TestSelectorDiscovery:
 
     def test_a_page_with_no_listing_returns_nothing(self):
         from bytecrawl.core import Page
+
         page = Page(url="https://x.test/", html="<html><body><p>Just prose.</p></body></html>")
         assert page.selectors() == []

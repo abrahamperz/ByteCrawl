@@ -9,8 +9,9 @@ LONG_BLOCK = "Power your AI agents with clean structured web data at any scale"
 
 class TestCarouselDedup:
     def test_repeated_long_block_kept_once(self):
-        md = "\n\n".join([LONG_BLOCK, "Something else entirely different here",
-                          LONG_BLOCK, LONG_BLOCK])
+        md = "\n\n".join(
+            [LONG_BLOCK, "Something else entirely different here", LONG_BLOCK, LONG_BLOCK]
+        )
         out = _clean_markdown(md)
         assert out.count(LONG_BLOCK) == 1
 
@@ -55,12 +56,19 @@ class TestMainContentFallback:
     that as a 144x saving.
     """
 
-    LISTING = ("<html><body><nav>Home Shop</nav>" + "".join(
-        f"<article class='p'><h3><a title='Book {i}'>Book {i}</a></h3>"
-        f"<p class='price'>£{i}.00</p></article>" for i in range(20)) + "</body></html>")
+    LISTING = (
+        "<html><body><nav>Home Shop</nav>"
+        + "".join(
+            f"<article class='p'><h3><a title='Book {i}'>Book {i}</a></h3>"
+            f"<p class='price'>£{i}.00</p></article>"
+            for i in range(20)
+        )
+        + "</body></html>"
+    )
 
     def test_falls_back_when_extraction_guts_the_page(self, monkeypatch):
         from bytecrawl.core import Page
+
         page = Page(url="https://x.test/", html=self.LISTING)
         trafilatura = pytest.importorskip("trafilatura")
         # stand in for what it really does here: return a sliver of the page
@@ -70,6 +78,7 @@ class TestMainContentFallback:
 
     def test_keeps_extraction_when_it_looks_sane(self, monkeypatch):
         from bytecrawl.core import Page
+
         page = Page(url="https://x.test/", html=self.LISTING)
         trafilatura = pytest.importorskip("trafilatura")
         full = page.soup.get_text(" ", strip=True)
@@ -82,4 +91,5 @@ class TestMainContentFallback:
         would fire on an article buried in navigation and hand back the
         navigation that was correctly removed."""
         from bytecrawl.core import Page
+
         assert Page._MAIN_CONTENT_FLOOR < 0.5

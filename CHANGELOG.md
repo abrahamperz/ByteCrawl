@@ -1,4 +1,24 @@
 # Changelog
+## 1.3.0 — 2026-09-11
+
+### Changed
+- **CI is split into separate checks instead of one "test" job.** Lint
+  (`ruff check`), format (`ruff format --check`), type check (`mypy`) and
+  security (`bandit`) each run as their own top-level check alongside the
+  unit-test matrix (`unit test 3.9` / `unit test 3.12`). A red check now points
+  straight at the cause — a formatting slip no longer hides behind a failing
+  type check inside a single collapsed job.
+- **Releases publish to PyPI automatically** through GitHub Actions Trusted
+  Publishing (OIDC) — no API tokens or stored secrets. A push to `main` with a
+  new `__version__` runs the tests, tags the release, and uploads to PyPI;
+  nothing publishes without a version bump.
+
+### Internal
+- Version is single-sourced from `__version__`: a test now pins the top
+  CHANGELOG entry and both READMEs to it, so they can't drift.
+- Type-checking fixes across the scraping and crawl modules and one audited
+  `# nosec` on the MCP HTTP bind. No behaviour change.
+
 ## 1.2.2 — 2026-09-10
 
 ### Fixed
