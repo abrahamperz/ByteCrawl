@@ -60,5 +60,14 @@ target-version = "py39"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
 
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+# playwright is the optional [browser] extra, not installed for the type-check
+# job — Scraper.browser() imports it lazily behind a try/except. Ignore its
+# missing stubs instead of pulling the heavy browser stack into CI.
+module = ["playwright.*"]
+ignore_missing_imports = true
+
 [tool.vercel]
 entrypoint = "landing.app:app"
