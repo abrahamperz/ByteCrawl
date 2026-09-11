@@ -240,7 +240,12 @@ class TestCorePrimitives:
 # --------------------------------------------------------------------------- #
 # MCP tools: every tool raises the right seed error.
 # --------------------------------------------------------------------------- #
-pytest.importorskip("mcp")
+# Guard on the exact submodule these tests import, not the top-level `mcp`
+# package: on Python 3.9 (CI installs no mcp extra there) a shallow `mcp` can be
+# importable without `mcp.server`, so importorskip("mcp") would pass and then the
+# line below would ImportError at collection. Naming the submodule skips the
+# module cleanly instead, the way the sibling MCP test files do.
+pytest.importorskip("mcp.server.mcpserver.exceptions")
 from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError  # noqa: E402
 
 from bytecrawl import mcp_server  # noqa: E402
