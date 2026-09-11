@@ -143,8 +143,7 @@ class TestCorePrimitives:
 
     def test_raise_for_seed_raises_rate_limit_on_a_throttled_seed(self):
         throttle = RateLimitError(retry_after=30)
-        r = CrawlResult(strategy="bfs", stats={"requests": 1, "errors": 1},
-                        rate_limited=throttle)
+        r = CrawlResult(strategy="bfs", stats={"requests": 1, "errors": 1}, rate_limited=throttle)
         with pytest.raises(RateLimitError) as exc:
             r.raise_for_seed()
         assert exc.value.retry_after == 30
@@ -153,8 +152,12 @@ class TestCorePrimitives:
         # A seed can look both walled and throttled; the bot-wall answer is the
         # more specific, more actionable one, so it takes precedence.
         wall = BlockedError("Cloudflare wall", wall="Cloudflare", status=429)
-        r = CrawlResult(strategy="bfs", stats={"requests": 1, "errors": 1},
-                        blocked=wall, rate_limited=RateLimitError())
+        r = CrawlResult(
+            strategy="bfs",
+            stats={"requests": 1, "errors": 1},
+            blocked=wall,
+            rate_limited=RateLimitError(),
+        )
         with pytest.raises(BlockedError):
             r.raise_for_seed()
 
@@ -162,8 +165,9 @@ class TestCorePrimitives:
         # A throttled seed also has every fetch failing (so `unreachable` is
         # true), but "slow down and retry" is the more specific answer than
         # "couldn't open it".
-        r = CrawlResult(strategy="bfs", stats={"requests": 1, "errors": 1},
-                        rate_limited=RateLimitError())
+        r = CrawlResult(
+            strategy="bfs", stats={"requests": 1, "errors": 1}, rate_limited=RateLimitError()
+        )
         assert r.unreachable is True  # every fetch failed…
         with pytest.raises(RateLimitError):  # …but the rate limit is reported
             r.raise_for_seed()
@@ -331,8 +335,7 @@ def public_dns(monkeypatch):
     from bytecrawl import security
 
     def fake_getaddrinfo(host, *a, **kw):
-        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
-                 ("93.184.216.34", 0))]
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 0))]
 
     monkeypatch.setattr(security.socket, "getaddrinfo", fake_getaddrinfo)
 
@@ -513,8 +516,7 @@ def test_api_unresolvable_host_is_502_unreachable_not_a_raw_400(monkeypatch):
 
     app = create_app()
     app.config.update(TESTING=True)
-    resp = app.test_client().get(
-        "/api", query_string={"url": "https://en.wikipedi2a.org/wiki/x"})
+    resp = app.test_client().get("/api", query_string={"url": "https://en.wikipedi2a.org/wiki/x"})
 
     assert resp.status_code == 502
     body = resp.get_json()

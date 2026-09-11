@@ -33,7 +33,8 @@ class FakeResponse:
         # A real Response.headers is case-insensitive; mirror that so code that
         # reads e.g. "Retry-After" finds a header sent as "retry-after".
         self.headers = requests.structures.CaseInsensitiveDict(
-            headers or {"content-type": "text/html"})
+            headers or {"content-type": "text/html"}
+        )
 
     @property
     def text(self):

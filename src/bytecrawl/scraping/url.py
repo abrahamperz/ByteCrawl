@@ -77,8 +77,7 @@ class BlockedError(requests.HTTPError):
 # the crawl path (via CrawlResult.raise_for_seed) all say the same thing and a
 # reword lands everywhere at once. UnreachableError() with no message uses it.
 UNREACHABLE_MESSAGE = (
-    "Couldn't open that page — the site didn't respond. Check the URL is real "
-    "and complete."
+    "Couldn't open that page — the site didn't respond. Check the URL is real and complete."
 )
 
 

@@ -54,6 +54,7 @@ def _seed_errors_as_tool_errors():
     except (BlockedError, UnreachableError) as e:
         raise ToolError(str(e)) from e
 
+
 # One polite scraper shared by every tool call.
 _scraper = Scraper(delay=DELAY)
 
@@ -68,6 +69,7 @@ def _open(url: str, *, api: bool = False, **kw):
     """
     with _seed_errors_as_tool_errors():
         return open_seed(lambda: _scraper.api(url, **kw) if api else _scraper.fetch(url))
+
 
 server = MCPServer(
     "bytecrawl",
