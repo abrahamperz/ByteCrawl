@@ -39,12 +39,17 @@ def _get(path: str, **params) -> tuple[dict, str]:
 
 
 def _rpc(method: str, params: dict | None = None) -> dict:
-    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method,
-                       "params": params or {}}).encode()
+    body = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}
+    ).encode()
     req = urllib.request.Request(
-        f"{BASE}/mcp", data=body,
-        headers={"Content-Type": "application/json",
-                 "Accept": "application/json, text/event-stream"})
+        f"{BASE}/mcp",
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        },
+    )
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310
         return json.loads(r.read().decode())
 
@@ -62,13 +67,15 @@ class TestAgentSkill:
     def test_every_link_it_gives_out_resolves(self):
         """It shipped pointing at a repo that 404s, and nothing caught it."""
         import re
+
         req = urllib.request.Request(f"{BASE}/agent-onboarding/SKILL.md")
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310
             body = r.read().decode()
         for url in sorted(set(re.findall(r"https://github\.com/[A-Za-z0-9._/-]+", body))):
             try:
                 urllib.request.urlopen(  # noqa: S310
-                    urllib.request.Request(url, method="HEAD"), timeout=TIMEOUT)
+                    urllib.request.Request(url, method="HEAD"), timeout=TIMEOUT
+                )
             except urllib.error.HTTPError as e:
                 pytest.fail(f"SKILL.md points at {url} — HTTP {e.code}")
 
@@ -80,12 +87,15 @@ class TestHttpApi:
     `elapsed`, which no method has ever returned.
     """
 
-    @pytest.mark.parametrize("method,extra,expected", [
-        ("markdown", {}, {"markdown", "tokens"}),
-        ("text", {}, {"text"}),
-        ("links", {}, {"links"}),
-        ("extract", {"select": "h3 a::attr(title)"}, {"values", "select"}),
-    ])
+    @pytest.mark.parametrize(
+        "method,extra,expected",
+        [
+            ("markdown", {}, {"markdown", "tokens"}),
+            ("text", {}, {"text"}),
+            ("links", {}, {"links"}),
+            ("extract", {"select": "h3 a::attr(title)"}, {"values", "select"}),
+        ],
+    )
     def test_documented_fields(self, method, extra, expected):
         out, _ = _get("/api", url="books.toscrape.com", method=method, **extra)
         assert {"url", "method"} <= set(out), "url and method are on every response"
@@ -93,8 +103,7 @@ class TestHttpApi:
         assert "status" not in out and "elapsed" not in out
 
     def test_compare_returns_a_verdict(self):
-        out, _ = _get("/api", url="books.toscrape.com", method="compare",
-                      query="fiction", pages=3)
+        out, _ = _get("/api", url="books.toscrape.com", method="compare", query="fiction", pages=3)
         assert set(out["strategies"]) == {"bfs", "shark", "opic"}
         assert out["winner"] in out["tied"]
 
@@ -108,20 +117,35 @@ class TestHostedMcp:
     def test_six_tools(self):
         """Deployed once answering 421 to every request, and once not at all."""
         names = {t["name"] for t in _rpc("tools/list")["result"]["tools"]}
-        assert names == {"fetch_markdown", "extract", "list_links",
-                         "focused_crawl", "compare_strategies", "fetch_json_api"}
+        assert names == {
+            "fetch_markdown",
+            "extract",
+            "list_links",
+            "focused_crawl",
+            "compare_strategies",
+            "fetch_json_api",
+        }
 
-    @pytest.mark.parametrize("tool,args,expect", [
-        ("fetch_markdown", {"url": BOOKS}, {"markdown", "tokens_html"}),
-        ("extract", {"url": BOOKS}, {"candidates"}),
-        ("extract", {"url": BOOKS, "select": "h3 a::attr(title)"}, {"values"}),
-        ("list_links", {"url": BOOKS}, {"links"}),
-        ("fetch_json_api", {"url": QUOTES_API}, {"data"}),
-        ("focused_crawl", {"url": BOOKS, "query": "fiction", "max_pages": 3},
-         {"pages", "stats"}),
-        ("compare_strategies", {"url": BOOKS, "query": "fiction", "max_pages": 3},
-         {"strategies", "winner"}),
-    ])
+    @pytest.mark.parametrize(
+        "tool,args,expect",
+        [
+            ("fetch_markdown", {"url": BOOKS}, {"markdown", "tokens_html"}),
+            ("extract", {"url": BOOKS}, {"candidates"}),
+            ("extract", {"url": BOOKS, "select": "h3 a::attr(title)"}, {"values"}),
+            ("list_links", {"url": BOOKS}, {"links"}),
+            ("fetch_json_api", {"url": QUOTES_API}, {"data"}),
+            (
+                "focused_crawl",
+                {"url": BOOKS, "query": "fiction", "max_pages": 3},
+                {"pages", "stats"},
+            ),
+            (
+                "compare_strategies",
+                {"url": BOOKS, "query": "fiction", "max_pages": 3},
+                {"strategies", "winner"},
+            ),
+        ],
+    )
     def test_every_tool_actually_runs(self, tool, args, expect):
         """Listing six tools is not the same as six tools working.
 
@@ -139,8 +163,10 @@ class TestHostedMcp:
     def test_ssrf_guard_is_live(self):
         """The one property that must never regress: a hosted scraper that
         forwards to link-local addresses is an open door to cloud metadata."""
-        out = _rpc("tools/call", {"name": "fetch_markdown",
-                                  "arguments": {"url": "http://169.254.169.254/"}})
+        out = _rpc(
+            "tools/call",
+            {"name": "fetch_markdown", "arguments": {"url": "http://169.254.169.254/"}},
+        )
         text = json.dumps(out)
         assert "non-public" in text, text[:200]
 
@@ -167,7 +193,8 @@ class TestPublishedVersion:
 
     def _pypi(self) -> str:
         with urllib.request.urlopen(  # noqa: S310
-                "https://pypi.org/pypi/bytecrawl/json", timeout=TIMEOUT) as r:
+            "https://pypi.org/pypi/bytecrawl/json", timeout=TIMEOUT
+        ) as r:
             return json.loads(r.read())["info"]["version"]
 
     def test_the_readme_version_is_installable(self):
@@ -180,23 +207,27 @@ class TestPublishedVersion:
         import bytecrawl
 
         root = Path(__file__).resolve().parent.parent
-        advertised = re.search(r"\*\*Latest release\*\*: \*\*([\d.]+)\*\*",
-                               (root / "README.md").read_text()).group(1)
-        assert advertised == bytecrawl.__version__      # offline suite covers this
+        advertised = re.search(
+            r"\*\*Latest release\*\*: \*\*([\d.]+)\*\*", (root / "README.md").read_text()
+        ).group(1)
+        assert advertised == bytecrawl.__version__  # offline suite covers this
         published = self._pypi()
         assert self._mm(advertised) == self._mm(published), (
             f"README and the package say {advertised}, PyPI serves {published} — "
-            "publish it, or the docs describe a release nobody can install")
+            "publish it, or the docs describe a release nobody can install"
+        )
         assert self._mm(published) <= self._mm(advertised), (
-            f"PyPI is ahead of the repo: {published} vs {advertised}")
+            f"PyPI is ahead of the repo: {published} vs {advertised}"
+        )
 
     def test_the_site_shows_the_published_version(self):
         """/docs renders it from the package, so a deploy behind PyPI shows a
         version people cannot get."""
         import re
+
         req = urllib.request.Request(f"{BASE}/docs")
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310
-            shown = re.search(r'<span class="pill">v([\d.]+)</span>',
-                              r.read().decode()).group(1)
-        assert self._mm(shown) == self._mm(self._pypi()), \
+            shown = re.search(r'<span class="pill">v([\d.]+)</span>', r.read().decode()).group(1)
+        assert self._mm(shown) == self._mm(self._pypi()), (
             f"/docs shows v{shown}, PyPI serves {self._pypi()}"
+        )

@@ -38,7 +38,7 @@ def cosine(text_a: str, text_b: str) -> float:
 @lru_cache(maxsize=4096)
 def _trigrams(word: str) -> frozenset:
     padded = f"~{word}~"
-    return frozenset(padded[i:i + 3] for i in range(len(padded) - 2))
+    return frozenset(padded[i : i + 3] for i in range(len(padded) - 2))
 
 
 def _dice(a: frozenset, b: frozenset) -> float:
@@ -81,7 +81,7 @@ def _resolve_terms(query: str, vocabulary: set) -> str:
             score = _dice(grams, _trigrams(word))
             if score > best_score:
                 best, best_score = word, score
-        resolved.append(best if best_score >= _FUZZY_MIN else term)
+        resolved.append(best if best is not None and best_score >= _FUZZY_MIN else term)
     return " ".join(resolved)
 
 

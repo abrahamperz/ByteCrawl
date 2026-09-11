@@ -29,7 +29,7 @@ browser = ["playwright>=1.40"]
 llm = ["markdownify>=0.11", "trafilatura>=1.6"]
 mcp = ["mcp>=2; python_version >= '3.10'", "markdownify>=0.11", "trafilatura>=1.6"]
 all = ["playwright>=1.40", "markdownify>=0.11", "trafilatura>=1.6", "mcp>=2; python_version >= '3.10'"]
-dev = ["pytest>=7", "pytest-cov", "ruff"]
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy", "bandit"]
 
 [project.scripts]
 bytecrawl-mcp = "bytecrawl.mcp_server:main"

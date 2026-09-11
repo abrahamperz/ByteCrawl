@@ -49,5 +49,10 @@ class Session:
         t0 = time.perf_counter()
         r = self._s.get(url, timeout=self._scraper.timeout)
         r.raise_for_status()
-        return Page(url=url, html=_decoded_html(r), method="static",
-                    elapsed=round(time.perf_counter() - t0, 3), status=r.status_code)
+        return Page(
+            url=url,
+            html=_decoded_html(r),
+            method="static",
+            elapsed=round(time.perf_counter() - t0, 3),
+            status=r.status_code,
+        )

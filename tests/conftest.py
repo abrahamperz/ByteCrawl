@@ -16,8 +16,15 @@ from bytecrawl.core import Page, Scraper
 class FakeResponse:
     """Minimal stand-in for requests.Response."""
 
-    def __init__(self, text="", status=200, json_data=None, headers=None,
-                 encoding="utf-8", apparent_encoding="utf-8"):
+    def __init__(
+        self,
+        text="",
+        status=200,
+        json_data=None,
+        headers=None,
+        encoding="utf-8",
+        apparent_encoding="utf-8",
+    ):
         self.status_code = status
         self.content = text.encode(apparent_encoding)
         self.encoding = encoding
@@ -70,16 +77,22 @@ def http(monkeypatch):
 # /cats/* is not. One external link tests the same_domain filter.
 SITE = {
     "https://s.test/": (
-        "Home", "welcome to the machine learning intro site",
-        [("/ml", "machine learning"), ("/cats", "cat pictures"),
-         ("https://other.test/x", "external")],
+        "Home",
+        "welcome to the machine learning intro site",
+        [
+            ("/ml", "machine learning"),
+            ("/cats", "cat pictures"),
+            ("https://other.test/x", "external"),
+        ],
     ),
     "https://s.test/ml": (
-        "ML", "machine learning and deep learning models machine learning",
+        "ML",
+        "machine learning and deep learning models machine learning",
         [("/ml/deep", "deep learning"), ("/", "home")],
     ),
     "https://s.test/cats": (
-        "Cats", "cats cats cats pictures of cats",
+        "Cats",
+        "cats cats cats pictures of cats",
         [("/cats/more", "more cats")],
     ),
     "https://s.test/ml/deep": ("Deep", "deep neural networks training", []),
@@ -90,8 +103,7 @@ SITE = {
 def render(url: str) -> str:
     title, text, links = SITE[url]
     anchors = "".join(f'<a href="{h}">{a}</a>' for h, a in links)
-    return (f"<html><head><title>{title}</title></head>"
-            f"<body><p>{text}</p>{anchors}</body></html>")
+    return f"<html><head><title>{title}</title></head><body><p>{text}</p>{anchors}</body></html>"
 
 
 @pytest.fixture

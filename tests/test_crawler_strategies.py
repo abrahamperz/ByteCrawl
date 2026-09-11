@@ -22,8 +22,7 @@ class TestBFS:
         # Seed first, then both depth-1 pages before any depth-2 page.
         assert fake_site[0] == SEED
         assert set(fake_site[1:3]) == {"https://s.test/ml", "https://s.test/cats"}
-        assert set(fake_site[3:5]) == {"https://s.test/ml/deep",
-                                       "https://s.test/cats/more"}
+        assert set(fake_site[3:5]) == {"https://s.test/ml/deep", "https://s.test/cats/more"}
 
     def test_max_depth_excludes_deeper_pages(self, fake_site):
         result = BFS(**crawler_kwargs()).crawl(SEED, max_pages=10, max_depth=1)
@@ -53,29 +52,23 @@ class TestBFS:
 
 class TestSharkSearch:
     def test_relevant_branch_visited_before_irrelevant(self, fake_site):
-        SharkSearch(query="machine learning", **crawler_kwargs()).crawl(
-            SEED, max_pages=4)
-        assert fake_site.index("https://s.test/ml") < \
-            fake_site.index("https://s.test/cats")
+        SharkSearch(query="machine learning", **crawler_kwargs()).crawl(SEED, max_pages=4)
+        assert fake_site.index("https://s.test/ml") < fake_site.index("https://s.test/cats")
 
     def test_irrelevant_branch_decays_geometrically(self, fake_site):
-        shark = SharkSearch(query="machine learning", delta=0.5,
-                            **crawler_kwargs())
+        shark = SharkSearch(query="machine learning", delta=0.5, **crawler_kwargs())
         shark.crawl(SEED, max_pages=5)
         # /cats has no query overlap, so /cats/more inherits delta * inherited(/cats).
         cats = shark._inherited["https://s.test/cats"]
-        assert shark._inherited["https://s.test/cats/more"] == \
-            pytest.approx(shark.delta * cats)
+        assert shark._inherited["https://s.test/cats/more"] == pytest.approx(shark.delta * cats)
 
     def test_relevance_scores_favor_ml_pages(self, fake_site):
-        result = SharkSearch(query="machine learning",
-                             **crawler_kwargs()).crawl(SEED, max_pages=5)
+        result = SharkSearch(query="machine learning", **crawler_kwargs()).crawl(SEED, max_pages=5)
         by_url = {p["url"]: p["relevance"] for p in result.pages}
         assert by_url["https://s.test/ml"] > by_url["https://s.test/cats"]
 
     def test_top_orders_by_relevance(self, fake_site):
-        result = SharkSearch(query="machine learning",
-                             **crawler_kwargs()).crawl(SEED, max_pages=5)
+        result = SharkSearch(query="machine learning", **crawler_kwargs()).crawl(SEED, max_pages=5)
         top = result.top(3)
         assert top[0]["relevance"] >= top[1]["relevance"] >= top[2]["relevance"]
 
@@ -101,13 +94,13 @@ class TestOPIC:
 
     def test_visits_all_reachable_pages(self, fake_site):
         result = OPIC(**crawler_kwargs()).crawl(SEED, max_pages=10)
-        assert {p["url"] for p in result.pages} == set(
-            u for u in fake_site)
+        assert {p["url"] for p in result.pages} == set(u for u in fake_site)
 
 
 class TestErrorHandling:
     def test_fetch_errors_counted_not_fatal(self, fake_site, monkeypatch):
         from bytecrawl.crawler import Crawler
+
         original = Crawler.score_links
 
         def with_broken_link(self, url, links, relevance, depth):

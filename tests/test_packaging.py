@@ -1,12 +1,36 @@
 """Package surface: version single-sourcing and top-level exports."""
 
 import importlib.metadata
+import re
+from pathlib import Path
 
 import bytecrawl
+
+_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_version_matches_installed_metadata():
     assert bytecrawl.__version__ == importlib.metadata.version("bytecrawl")
+
+
+def test_changelog_top_entry_matches_version():
+    """The newest CHANGELOG heading is the version being shipped —
+    __init__.py is the single source, everything else tracks it."""
+    text = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    top = re.search(r"^## (\d+\.\d+\.\d+)", text, re.M)
+    assert top, "no `## X.Y.Z` heading found in CHANGELOG.md"
+    assert top.group(1) == bytecrawl.__version__, (
+        f"CHANGELOG top is {top.group(1)} but __version__ is {bytecrawl.__version__}"
+    )
+
+
+def test_readmes_advertise_current_version():
+    """Both READMEs' 'latest release' line must name the shipped version."""
+    for name in ("README.md", "README.es.md"):
+        text = (_ROOT / name).read_text(encoding="utf-8")
+        assert bytecrawl.__version__ in text, (
+            f"{name} does not mention the current version {bytecrawl.__version__}"
+        )
 
 
 def test_top_level_exports():
@@ -41,11 +65,24 @@ def test_serverless_entrypoints_do_not_shadow_dependencies():
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
-    third_party = {"mcp", "flask", "requests", "bs4", "lxml", "uvicorn",
-                   "starlette", "anyio", "pydantic", "posthog", "dotenv",
-                   "markdownify", "trafilatura", "playwright", "bytecrawl"}
-    clashes = [p.name for p in (root / "web/mcp").glob("*.py")
-               if p.stem in third_party]
+    third_party = {
+        "mcp",
+        "flask",
+        "requests",
+        "bs4",
+        "lxml",
+        "uvicorn",
+        "starlette",
+        "anyio",
+        "pydantic",
+        "posthog",
+        "dotenv",
+        "markdownify",
+        "trafilatura",
+        "playwright",
+        "bytecrawl",
+    }
+    clashes = [p.name for p in (root / "web/mcp").glob("*.py") if p.stem in third_party]
     assert not clashes, f"web/mcp/ entrypoints shadow installed packages: {clashes}"
 
     # and every path vercel.json points at has to exist
@@ -71,14 +108,18 @@ def test_serverless_requirements_stay_in_sync():
     root = Path(__file__).resolve().parent.parent
 
     def pkgs(path):
-        return [ln.strip() for ln in (root / path).read_text().splitlines()
-                if ln.strip() and not ln.startswith("#")]
+        return [
+            ln.strip()
+            for ln in (root / path).read_text().splitlines()
+            if ln.strip() and not ln.startswith("#")
+        ]
 
     demo, api = pkgs("web/landing/requirements.txt"), pkgs("web/mcp/requirements.txt")
     assert demo == api, (
         "web/landing/requirements.txt and web/mcp/requirements.txt must match — they "
         f"install into the same venv.\n  demo only: {set(demo) - set(api)}\n"
-        f"  api only:  {set(api) - set(demo)}")
+        f"  api only:  {set(api) - set(demo)}"
+    )
     # the hosted MCP server cannot start without these
     assert any(p.startswith("mcp") for p in api)
     assert "trafilatura" in api and "flask" in api
@@ -96,8 +137,9 @@ def test_agent_skill_points_at_the_real_repo():
     from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
-    canonical = re.search(r'Homepage = "(https://github\.com/[^"]+)"',
-                          (root / "pyproject.toml").read_text()).group(1)
+    canonical = re.search(
+        r'Homepage = "(https://github\.com/[^"]+)"', (root / "pyproject.toml").read_text()
+    ).group(1)
     skill = (root / "web/landing/static/SKILL.md").read_text()
     found = set(re.findall(r"https://github\.com/[A-Za-z0-9._/-]+", skill))
     wrong = {u for u in found if not u.startswith(canonical)}
@@ -125,12 +167,13 @@ def test_the_skill_does_not_order_the_agent_around():
 
     # nothing about writing to the machine before the reader knows what this is
     for probe in ("~/.claude/skills", "mcpServers", "mcp add"):
-        assert probe not in head + opening, \
+        assert probe not in head + opening, (
             f"{probe!r} appears before the skill has said what it does"
+        )
 
     # the option still has to exist, and be framed as the person's choice
     assert "~/.claude/skills/bytecrawl" in skill, "no way to install it at all"
-    flat = " ".join(skill.split())          # the prose is hard-wrapped
+    flat = " ".join(skill.split())  # the prose is hard-wrapped
     assert "do not change their configuration on your own" in flat
     assert "ask first" in flat
 
@@ -143,12 +186,14 @@ def test_the_skill_does_not_order_the_agent_around():
     landing = (root / "web/landing/templates/landing.html").read_text()
     setup = re.search(r"const SETUP_CMD = (.+?);\n", landing, re.S).group(1)
     assert "agent-onboarding/SKILL.md" in setup, "the button lost the URL"
-    assert "MCP server" in setup and "skill" in setup, \
+    assert "MCP server" in setup and "skill" in setup, (
         "the button must ask for both — the server alone leaves /bytecrawl missing"
+    )
 
 
 def _repo_version():
     import bytecrawl
+
     return bytecrawl.__version__
 
 
@@ -172,8 +217,10 @@ def test_every_version_in_the_repo_agrees():
         wrong["CHANGELOG.md"] = top.group(1)
 
     # both READMEs advertise it to anyone who never opens the changelog
-    for name, label in (("README.md", r"\*\*Latest release\*\*: \*\*([\d.]+)\*\*"),
-                        ("README.es.md", r"\*\*Última versión\*\*: \*\*([\d.]+)\*\*")):
+    for name, label in (
+        ("README.md", r"\*\*Latest release\*\*: \*\*([\d.]+)\*\*"),
+        ("README.es.md", r"\*\*Última versión\*\*: \*\*([\d.]+)\*\*"),
+    ):
         m = re.search(label, (root / name).read_text())
         assert m, f"{name} no longer states a version"
         if m.group(1) != version:
@@ -208,9 +255,10 @@ def test_the_skill_can_tell_it_is_stale():
     flat = " ".join(skill.split())
     assert "skill.json" in skill, "the skill never mentions how to check"
     assert "shasum -a 256" in skill
-    assert "do not fetch it yourself" in flat, \
-        "an agent overwriting a file in someone's home because a hash differed " \
+    assert "do not fetch it yourself" in flat, (
+        "an agent overwriting a file in someone's home because a hash differed "
         "is what the rest of this document tells it to refuse"
+    )
     # and it has to look on its own, not wait for a symptom: the failure that
     # prompted this was a link that 404s, which errors nothing
     assert "Check once, the first time you use this in a session" in flat
@@ -219,12 +267,14 @@ def test_the_skill_can_tell_it_is_stale():
     # route rather than running it: importing the landing app drags in Flask,
     # which the package does not depend on and CI does not install — the landing
     # site is a separate application that happens to live in this repository.
-    route = app_py[app_py.index('"/agent-onboarding/skill.json"'):]
-    route = route[:route.index("@pages_bp.route", 1)]
-    assert 'read_bytes()' in route and "hashlib.sha256" in route, \
+    route = app_py[app_py.index('"/agent-onboarding/skill.json"') :]
+    route = route[: route.index("@pages_bp.route", 1)]
+    assert "read_bytes()" in route and "hashlib.sha256" in route, (
         "the endpoint must hash the file it serves, not a stored value"
+    )
     assert "SKILL.md" in route
 
     # a stored hash would be the drift this is meant to prevent
-    assert hashlib.sha256(body).hexdigest()[:8] not in app_py, \
+    assert hashlib.sha256(body).hexdigest()[:8] not in app_py, (
         "the current hash is hardcoded somewhere — it has to be computed"
+    )

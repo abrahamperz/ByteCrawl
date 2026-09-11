@@ -36,8 +36,7 @@ class TestEncoding:
     def test_iso_8859_1_fallback_uses_apparent_encoding(self):
         # requests defaults to ISO-8859-1 when the header has no charset
         # (RFC 2616); for a UTF-8 body that turns £ into Â£.
-        r = FakeResponse(text="price £10", encoding="iso-8859-1",
-                         apparent_encoding="utf-8")
+        r = FakeResponse(text="price £10", encoding="iso-8859-1", apparent_encoding="utf-8")
         assert _decoded_html(r) == "price £10"
 
     def test_declared_encoding_is_respected(self):
@@ -48,8 +47,8 @@ class TestEncoding:
 class TestApi:
     def test_json_page(self, http):
         http.routes["https://api.test/items"] = FakeResponse(
-            json_data={"items": [1, 2, 3]},
-            headers={"content-type": "application/json"})
+            json_data={"items": [1, 2, 3]}, headers={"content-type": "application/json"}
+        )
         page = Scraper().api("https://api.test/items")
         assert page.method == "api"
         assert page.json() == {"items": [1, 2, 3]}
@@ -64,23 +63,24 @@ class TestFetchAuto:
     def test_content_rich_page_stays_static(self, http, monkeypatch):
         http.routes["https://x.test/"] = FakeResponse(text=LONG_HTML)
         called = []
-        monkeypatch.setattr(Scraper, "browser",
-                            lambda self, url, **kw: called.append(url))
+        monkeypatch.setattr(Scraper, "browser", lambda self, url, **kw: called.append(url))
         page = Scraper().fetch("https://x.test/")
         assert page.method == "static"
         assert called == []
 
     def test_sparse_page_falls_back_to_browser(self, http, monkeypatch):
         http.routes["https://spa.test/"] = FakeResponse(
-            text="<html><body><div id='root'></div></body></html>")
+            text="<html><body><div id='root'></div></body></html>"
+        )
         sentinel = object()
         monkeypatch.setattr(Scraper, "browser", lambda self, url, **kw: sentinel)
         assert Scraper().fetch("https://spa.test/") is sentinel
 
     def test_explicit_static_never_falls_back(self, http, monkeypatch):
         http.routes["https://spa.test/"] = FakeResponse(text="<html></html>")
-        monkeypatch.setattr(Scraper, "browser",
-                            lambda self, url, **kw: pytest.fail("browser called"))
+        monkeypatch.setattr(
+            Scraper, "browser", lambda self, url, **kw: pytest.fail("browser called")
+        )
         page = Scraper().fetch("https://spa.test/", strategy="static")
         assert page.method == "static"
 
@@ -101,21 +101,27 @@ class TestCrawlPagination:
         http.routes["https://x.test/page1"] = FakeResponse(text=ITEMS_P1)
         http.routes["https://x.test/page2"] = FakeResponse(text=ITEMS_P2)
         rows = Scraper().crawl(
-            "https://x.test/page1", item="article.item",
+            "https://x.test/page1",
+            item="article.item",
             fields={"name": "h3::text"},
-            next_page="li.next a::attr(href)")
+            next_page="li.next a::attr(href)",
+        )
         assert [r["name"] for r in rows] == ["A", "B", "C"]
 
     def test_pages_limit_stops_early(self, http):
         http.routes["https://x.test/page1"] = FakeResponse(text=ITEMS_P1)
         rows = Scraper().crawl(
-            "https://x.test/page1", item="article.item",
+            "https://x.test/page1",
+            item="article.item",
             fields={"name": "h3::text"},
-            next_page="li.next a::attr(href)", pages=1)
+            next_page="li.next a::attr(href)",
+            pages=1,
+        )
         assert [r["name"] for r in rows] == ["A", "B"]
 
     def test_no_next_page_selector_single_page(self, http):
         http.routes["https://x.test/page1"] = FakeResponse(text=ITEMS_P1)
-        rows = Scraper().crawl("https://x.test/page1", item="article.item",
-                               fields={"name": "h3::text"})
+        rows = Scraper().crawl(
+            "https://x.test/page1", item="article.item", fields={"name": "h3::text"}
+        )
         assert len(rows) == 2

@@ -17,23 +17,20 @@ class TestLogin:
         http.routes["https://x.test/login"] = FakeResponse(text=LOGIN_FORM)
         http.routes["POST https://x.test/login"] = FakeResponse(status=200)
 
-        Scraper().session().login("https://x.test/login",
-                                  {"user": "ana", "pass": "s3cret"},
-                                  csrf_field="csrf_token")
+        Scraper().session().login(
+            "https://x.test/login", {"user": "ana", "pass": "s3cret"}, csrf_field="csrf_token"
+        )
 
         method, url, kw = http.calls[-1]
         assert (method, url) == ("POST", "https://x.test/login")
-        assert kw["data"] == {"user": "ana", "pass": "s3cret",
-                              "csrf_token": "tok123"}
+        assert kw["data"] == {"user": "ana", "pass": "s3cret", "csrf_token": "tok123"}
 
     def test_csrf_input_without_value_posts_empty(self, http):
         # Regression: token["value"] used to KeyError on <input> with no value.
-        http.routes["https://x.test/login"] = FakeResponse(
-            text='<input name="csrf_token">')
+        http.routes["https://x.test/login"] = FakeResponse(text='<input name="csrf_token">')
         http.routes["POST https://x.test/login"] = FakeResponse(status=200)
 
-        Scraper().session().login("https://x.test/login", {"user": "ana"},
-                                  csrf_field="csrf_token")
+        Scraper().session().login("https://x.test/login", {"user": "ana"}, csrf_field="csrf_token")
         assert http.calls[-1][2]["data"]["csrf_token"] == ""
 
     def test_failed_post_raises(self, http):
@@ -42,8 +39,9 @@ class TestLogin:
         http.routes["POST https://x.test/login"] = FakeResponse(status=403)
 
         with pytest.raises(requests.HTTPError):
-            Scraper().session().login("https://x.test/login", {"user": "ana"},
-                                      csrf_field="csrf_token")
+            Scraper().session().login(
+                "https://x.test/login", {"user": "ana"}, csrf_field="csrf_token"
+            )
 
     def test_login_without_csrf_skips_get(self, http):
         http.routes["POST https://x.test/login"] = FakeResponse(status=200)
@@ -58,7 +56,8 @@ class TestBearer:
 
     def test_fetch_returns_page(self, http):
         http.routes["https://x.test/private"] = FakeResponse(
-            text="<html><body>secret</body></html>")
+            text="<html><body>secret</body></html>"
+        )
         page = Scraper().session().fetch("https://x.test/private")
         assert "secret" in page.html
         assert page.status == 200

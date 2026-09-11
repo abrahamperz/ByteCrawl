@@ -21,6 +21,7 @@ JS_URL = "https://quotes.toscrape.com/js/"
 @pytest.fixture(scope="module")
 def chromium_available():
     from playwright.sync_api import sync_playwright
+
     try:
         with sync_playwright() as p:
             p.chromium.launch(headless=True).close()

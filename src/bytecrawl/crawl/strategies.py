@@ -51,7 +51,7 @@ class SharkSearch(Crawler):
         scored = []
         for link in links:
             url_words = " ".join(_tokens(urlparse(link["url"]).path))
-            local = relevance(f'{link["anchor"]} {url_words}', self.query)
+            local = relevance(f"{link['anchor']} {url_words}", self.query)
             score = self.gamma * inherited + (1 - self.gamma) * local
             self._inherited[link["url"]] = inherited
             scored.append((link["url"], score))
@@ -104,5 +104,7 @@ class OPIC(Crawler):
 # strategy, so a crawl requested over HTTP, over MCP or in Python means the
 # same thing everywhere.
 STRATEGIES: dict[str, type[Crawler]] = {
-    "bfs": BFS, "shark": SharkSearch, "opic": OPIC,
+    "bfs": BFS,
+    "shark": SharkSearch,
+    "opic": OPIC,
 }

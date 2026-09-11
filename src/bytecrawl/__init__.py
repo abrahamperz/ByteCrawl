@@ -36,8 +36,17 @@ from .crawler import (
 )
 
 __all__ = [
-    "Scraper", "Page", "Session",
-    "Crawler", "BFS", "SharkSearch", "OPIC", "CrawlResult", "STRATEGIES",
-    "pagerank", "cosine", "compare",
+    "Scraper",
+    "Page",
+    "Session",
+    "Crawler",
+    "BFS",
+    "SharkSearch",
+    "OPIC",
+    "CrawlResult",
+    "STRATEGIES",
+    "pagerank",
+    "cosine",
+    "compare",
 ]
-__version__ = "1.2.2"
+__version__ = "1.3.0"
